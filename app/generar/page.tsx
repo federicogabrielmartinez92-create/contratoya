@@ -52,8 +52,9 @@ export default function GenerarPage() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/auth/login'); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push('/auth/login'); return; }
+      const user = session.user;
 
       const { data } = await supabase
         .from('usuarios')
