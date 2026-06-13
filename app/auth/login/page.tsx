@@ -1,7 +1,7 @@
 'use client';
-export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -10,14 +10,15 @@ export default function LoginPage() {
   const [modo,     setModo]     = useState<'login'|'register'>('login');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
-
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+
+  const getSupabase = () => createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
   const handleGoogle = async () => {
+    const supabase = getSupabase();
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -27,6 +28,7 @@ export default function LoginPage() {
   const handleSubmit = async () => {
     if (!email || !password) { setError('Completá email y contraseña'); return; }
     setLoading(true); setError('');
+    const supabase = getSupabase();
     try {
       if (modo === 'register') {
         const { error } = await supabase.auth.signUp({ email, password });
@@ -60,7 +62,6 @@ export default function LoginPage() {
           {modo === 'login' ? 'Para generar tus contratos' : 'Es gratis, sin tarjeta de crédito'}
         </p>
 
-        {/* Botón Google */}
         <button onClick={handleGoogle}
           style={{ width:'100%', padding:'12px', borderRadius:'10px', background:'#fff', border:'1.5px solid #E5E7EB', fontSize:'15px', fontWeight:500, cursor:'pointer', fontFamily:'Inter, sans-serif', marginBottom:'20px', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', color:'#111827' }}>
           <svg width="18" height="18" viewBox="0 0 18 18">
