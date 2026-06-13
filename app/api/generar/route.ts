@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
 const client = new Anthropic();
 
 export async function POST(request: NextRequest) {
@@ -10,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 8000,
       messages: [{
         role: 'user',
         content: `Generá un contrato profesional de prestación de servicios para freelancer argentino.
@@ -20,7 +22,6 @@ DATOS:
 - Cliente: ${cliente} (CUIT: ${cuit_cliente})
 - Servicio: ${servicio}
 - Monto: ${monto} ${moneda}
-- Moneda: ${moneda}
 - Plazo de entrega: ${plazo}
 - Ciudad: ${ciudad || 'Buenos Aires'}
 - Fecha: ${fecha}
@@ -29,11 +30,11 @@ DATOS:
 INSTRUCCIONES:
 - Español formal argentino
 - Conforme al Código Civil y Comercial de la Nación Argentina
-- Incluir estas cláusulas: objeto del contrato, honorarios y forma de pago (${condiciones_pago}), plazo de entrega, propiedad intelectual, confidencialidad, mora e intereses (2% mensual), rescisión, jurisdicción en ${ciudad || 'Buenos Aires'}
-- Incluir espacios para firmas al final con nombre y aclaración
-- - Solo el texto del contrato, sin comentarios ni explicaciones adicionales
-- NO uses formato markdown: nada de asteriscos (**), numeral (##) ni guiones (---). Para los títulos de cláusulas usá MAYÚSCULAS directamente.`
-      }]
+- Incluir: objeto, honorarios y forma de pago (${condiciones_pago}), plazo, propiedad intelectual, confidencialidad, mora (2% mensual), rescisión, jurisdicción en ${ciudad || 'Buenos Aires'}
+- Espacios para firmas al final con nombre y aclaración
+- Solo el texto del contrato, sin comentarios adicionales
+- NO uses markdown: sin asteriscos, sin ##, sin ---. Títulos en MAYÚSCULAS.`,
+      }],
     });
 
     const contrato = message.content[0].type === 'text' ? message.content[0].text : '';
