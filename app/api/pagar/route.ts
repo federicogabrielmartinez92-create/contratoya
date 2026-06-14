@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
             failure: `${baseUrl}/pago/error`,
             pending: `${baseUrl}/pago/pendiente`,
                         },
+            ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
             external_reference: `express_${userId}`,
-          external_reference: `express_${userId}`,
         },
       });
       return NextResponse.json({ url: response.init_point });
@@ -59,12 +59,12 @@ export async function POST(request: NextRequest) {
             pending: `${baseUrl}/pago/pendiente`,
           },
           back_urls: {
-  success: `${baseUrl}/pago/exito?plan=express&userId=${userId}`,
-  failure: `${baseUrl}/pago/error`,
-  pending: `${baseUrl}/pago/pendiente`,
-},
-external_reference: `express_${userId}`,
-          external_reference: `pro_${userId}`,
+            success: `${baseUrl}/pago/exito?plan=pro&userId=${userId}`,
+            failure: `${baseUrl}/pago/error`,
+            pending: `${baseUrl}/pago/pendiente`,
+            },
+            ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
+            external_reference: `pro_${userId}`,
         },
       });
       return NextResponse.json({ url: response.init_point });
