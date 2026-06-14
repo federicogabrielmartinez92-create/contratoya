@@ -29,11 +29,6 @@ export async function POST(request: NextRequest) {
             success: `${baseUrl}/pago/exito?plan=express&userId=${userId}`,
             failure: `${baseUrl}/pago/error`,
             pending: `${baseUrl}/pago/pendiente`,
-          },
-          back_urls: {
-            success: `${baseUrl}/pago/exito?plan=express&userId=${userId}`,
-            failure: `${baseUrl}/pago/error`,
-            pending: `${baseUrl}/pago/pendiente`,
                         },
             ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
             external_reference: `express_${userId}`,
