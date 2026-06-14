@@ -223,7 +223,7 @@ export default function GenerarPage() {
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#92400E', margin: '0 0 2px' }}>Ya usaste tu contrato gratuito</p>
               <p style={{ fontSize: '13px', color: '#B45309', margin: 0 }}>Elegí un plan para seguir generando contratos</p>
             </div>
-            <a href="#planes" style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', background: '#FDE68A', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none' }}>
+            <a href="/precios" style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', background: '#FDE68A', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none' }}>
               Ver planes →
             </a>
           </div>
