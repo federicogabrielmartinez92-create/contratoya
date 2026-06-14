@@ -48,11 +48,7 @@ export async function POST(request: NextRequest) {
             currency_id: 'USD',
           }],
           payer: { email: userEmail },
-          back_urls: {
-            success: `${baseUrl}/pago/exito?plan=pro&userId=${userId}`,
-            failure: `${baseUrl}/pago/error`,
-            pending: `${baseUrl}/pago/pendiente`,
-          },
+          
           back_urls: {
             success: `${baseUrl}/pago/exito?plan=pro&userId=${userId}`,
             failure: `${baseUrl}/pago/error`,
