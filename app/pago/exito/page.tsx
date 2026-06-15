@@ -1,28 +1,80 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
 
 function ExitoContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [mensaje, setMensaje] = useState('¡Pago exitoso!');
-  const [sub,     setSub]     = useState('En segundos te redirigimos al generador.');
+  const router       = useRouter();
+  const [mensaje, setMensaje] = useState('Procesando tu pago...');
+  const [sub,     setSub]     = useState('Verificando con Mercado Pago...');
 
   useEffect(() => {
-    const plan = searchParams.get('plan');
+    const plan      = searchParams.get('plan');
+    const userId    = searchParams.get('userId');
+    const paymentId = searchParams.get('payment_id'); // MP lo agrega solo al redirigir
 
-    if (plan === 'express') {
-      setMensaje('¡Pago Express exitoso!');
-      setSub('Tu contrato con firma digital ya está disponible.');
-    } else if (plan === 'pro') {
-      setMensaje('¡Bienvenido al plan Pro!');
-      setSub('Tus 15 contratos mensuales ya están activos.');
-    }
+    if (!plan || !userId) return;
 
-    // El webhook ya actualizó Supabase, solo redirigimos
-    setTimeout(() => router.push('/generar'), 3000);
+    const activar = async () => {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      if (paymentId) {
+        // ── Chequear si el webhook ya procesó este pago ──
+        const { data: yaExiste } = await supabase
+          .from('pagos')
+          .select('id')
+          .eq('mp_payment_id', paymentId)
+          .single();
+
+        if (!yaExiste) {
+          // Webhook no llegó aún → lo procesamos nosotros
+          if (plan === 'express') {
+            const { data: usuario } = await supabase
+              .from('usuarios')
+              .select('creditos_express')
+              .eq('id', userId)
+              .single();
+
+            await supabase
+              .from('usuarios')
+              .update({ creditos_express: (usuario?.creditos_express ?? 0) + 1 })
+              .eq('id', userId);
+
+          } else if (plan === 'pro') {
+            await supabase
+              .from('usuarios')
+              .update({ plan: 'pro', contratos_mes: 0 })
+              .eq('id', userId);
+          }
+
+          // Registrar para que el webhook no lo duplique
+          await supabase.from('pagos').insert({
+            mp_payment_id: paymentId,
+            usuario_id:    userId,
+            plan,
+          });
+        }
+        // Si yaExiste → el webhook se adelantó, no hacemos nada
+      }
+
+      if (plan === 'express') {
+        setMensaje('¡Pago Express exitoso!');
+        setSub('Tu contrato con firma digital ya está disponible.');
+      } else if (plan === 'pro') {
+        setMensaje('¡Bienvenido al plan Pro!');
+        setSub('Tus 15 contratos mensuales ya están activos.');
+      }
+
+      setTimeout(() => router.push('/generar'), 2500);
+    };
+
+    activar();
   }, [searchParams, router]);
 
   return (
