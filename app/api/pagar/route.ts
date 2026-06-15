@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
             currency_id: 'USD',
           }],
           payer: { email: userEmail },
+          notification_url: `${baseUrl}/api/webhooks/mp`,
           back_urls: {
             success: `${baseUrl}/pago/exito?plan=express&userId=${userId}`,
             failure: `${baseUrl}/pago/error`,
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
                         },
             ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
             external_reference: `express_${userId}`,
+        
         },
       });
       return NextResponse.json({ url: response.init_point });
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
             currency_id: 'USD',
           }],
           payer: { email: userEmail },
-          
+          notification_url: `${baseUrl}/api/webhooks/mp`,
           back_urls: {
             success: `${baseUrl}/pago/exito?plan=pro&userId=${userId}`,
             failure: `${baseUrl}/pago/error`,
