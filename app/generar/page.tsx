@@ -22,19 +22,36 @@ const campos = [
   { name: 'fecha',          label: 'Fecha',                  placeholder: 'Ej: 10/06/2026',                 span: 1 },
 ];
 
+const initialFormAlquiler: Record<string, string> = {
+  locador_nombre: '', locador_dni: '', locador_estado_civil: 'Soltero/a', locador_domicilio: '', locador_email: '',
+  locatario_nombre: '', locatario_dni: '', locatario_estado_civil: 'Soltero/a', locatario_email: '',
+  garante_tipo: 'Propietaria',
+  garante_nombre: '', garante_dni: '', garante_domicilio: '', garante_email: '',
+  garante_matricula: '', garante_registro: '', garante_ciudad_prop: '', garante_provincia_prop: '',
+  garante_empresa: '', garante_cargo: '',
+  garante_aseguradora: '', garante_poliza: '',
+  inmueble_tipo: 'Departamento', inmueble_direccion: '', inmueble_piso_dpto: '',
+  inmueble_cp: '', inmueble_destino: 'Vivienda familiar', inmueble_estado: '',
+  fecha_inicio: new Date().toLocaleDateString('es-AR'),
+  duracion_meses: '24',
+  monto_alquiler: '', moneda_alquiler: 'ARS',
+  indice: 'ICL', periodicidad: 'Cuatrimestral',
+  dias_desde: '1', dias_hasta: '10', metodo_pago: 'Transferencia bancaria',
+  monto_deposito: '', moneda_deposito: 'ARS',
+  servicios_obs: 'El locatario abona servicios (luz, gas, agua, internet) y expensas ordinarias. El locador abona impuesto inmobiliario y expensas extraordinarias.',
+  preaviso: '60 días', jurisdiccion: 'Tribunales Provinciales de Rosario',
+};
+
 interface Usuario {
-  id: string;
-  email: string;
-  plan: string;
-  contratos_usados: number;
-  contratos_mes: number;
-  creditos_express: number; // ← NUEVO
+  id: string; email: string; plan: string;
+  contratos_usados: number; contratos_mes: number; creditos_express: number;
 }
 
 export default function GenerarPage() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [usuario, setUsuario]         = useState<Usuario | null>(null);
+  const [cargando, setCargando]       = useState(true);
+  const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
 
   const [form, setForm] = useState<Record<string, string>>({
     prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
@@ -43,6 +60,7 @@ export default function GenerarPage() {
     condiciones_pago: '50% adelanto / 50% al entregar',
     moneda: 'ARS', email_prestador: '', email_cliente: '',
   });
+  const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
 
   const [conFirma, setConFirma] = useState(false);
   const [contrato, setContrato] = useState('');
@@ -56,13 +74,7 @@ export default function GenerarPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/auth/login'); return; }
       const user = session.user;
-
-      const { data } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      const { data } = await supabase.from('usuarios').select('*').eq('id', user.id).single();
       if (data) {
         setUsuario(data);
       } else {
@@ -74,130 +86,92 @@ export default function GenerarPage() {
     init();
   }, [router]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
+  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/'); };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChangeAlquiler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
 
   const crearPDF = (texto: string) => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    const W = doc.internal.pageSize.getWidth(); const H = doc.internal.pageSize.getHeight();
     const mx = 50; const lh = 14;
     const lines = doc.splitTextToSize(texto, W - mx * 2) as string[];
     let y = mx + lh;
-    lines.forEach((line) => {
-      if (y > H - mx) { doc.addPage(); y = mx + lh; }
-      doc.text(line, mx, y); y += lh;
-    });
+    lines.forEach((line) => { if (y > H - mx) { doc.addPage(); y = mx + lh; } doc.text(line, mx, y); y += lh; });
     return doc;
   };
-
-  const generarPDFBase64 = (texto: string) =>
-    crearPDF(texto).output('datauristring').split(',')[1];
-
-  const handleDescargar = () =>
-    crearPDF(contrato).save(`contrato-${form.cliente.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  const generarPDFBase64 = (texto: string) => crearPDF(texto).output('datauristring').split(',')[1];
+  const handleDescargar = () => {
+    const nombre = tipoContrato === 'alquiler'
+      ? `contrato-alquiler-${formAlquiler.locatario_nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`
+      : `contrato-${form.cliente.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+    crearPDF(contrato).save(nombre);
+  };
 
   const handleGenerar = async () => {
     if (!usuario) return;
-
-    // ── Límites por plan ──────────────────────────────────
     const creditosExpress = usuario.creditos_express ?? 0;
 
     if (usuario.plan === 'pro') {
-      if (usuario.contratos_mes >= 15) {
-        setError('Llegaste al límite de 15 contratos del plan Pro este mes.');
-        return;
-      }
+      if (usuario.contratos_mes >= 15) { setError('Llegaste al límite de 15 contratos del plan Pro este mes.'); return; }
     } else if (creditosExpress > 0) {
-      // Tiene crédito Express → puede generar con firma, sin tope
+      // OK
     } else {
-      // Gratis sin créditos
-      if (usuario.contratos_usados >= 1) {
-        setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.');
-        return;
-      }
+      if (usuario.contratos_usados >= 1) { setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.'); return; }
+    }
+    if (conFirma && usuario.plan !== 'pro' && creditosExpress === 0) {
+      setError('La firma digital requiere un plan Express o Pro.'); return;
     }
 
-    if (conFirma && usuario.plan !== 'pro' && (usuario.creditos_express ?? 0) === 0) {
-      setError('La firma digital requiere un plan Express o Pro.');
-      return;
-    }
-    // ─────────────────────────────────────────────────────
-
-    if (!form.prestador || !form.cliente || !form.servicio || !form.monto || !form.cuit_prestador) {
-      setError('Completá los campos obligatorios (*)'); return;
-    }
-    if (conFirma && (!form.email_prestador || !form.email_cliente)) {
-      setError('Para la firma digital necesitás ingresar ambos emails'); return;
+    if (tipoContrato === 'servicios') {
+      if (!form.prestador || !form.cliente || !form.servicio || !form.monto || !form.cuit_prestador) { setError('Completá los campos obligatorios (*)'); return; }
+      if (conFirma && (!form.email_prestador || !form.email_cliente)) { setError('Para la firma digital necesitás ingresar ambos emails'); return; }
+    } else {
+      if (!formAlquiler.locador_nombre || !formAlquiler.locatario_nombre || !formAlquiler.inmueble_direccion || !formAlquiler.monto_alquiler) { setError('Completá los campos obligatorios (*)'); return; }
+      if (conFirma && (!formAlquiler.locador_email || !formAlquiler.locatario_email)) { setError('Para la firma digital necesitás los emails del locador y locatario'); return; }
     }
 
     setLoading(true); setError('');
     const inicio = Date.now();
 
     try {
-      const res1 = await fetch('/api/generar', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const payload = tipoContrato === 'alquiler' ? { tipo: 'alquiler', ...formAlquiler } : { tipo: 'servicios', ...form };
+      const res1 = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data1 = await res1.json();
       if (data1.error) throw new Error(data1.error);
       setContrato(data1.contrato);
 
       if (conFirma) {
         const base64_pdf = generarPDFBase64(data1.contrato);
-        const res2 = await fetch('/api/firmar', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64_pdf, prestador: form.prestador, email_prestador: form.email_prestador, cliente: form.cliente, email_cliente: form.email_cliente }),
-        });
+        const f1 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locador_nombre,   email: formAlquiler.locador_email }   : { nombre: form.prestador, email: form.email_prestador };
+        const f2 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email } : { nombre: form.cliente,    email: form.email_cliente };
+        const res2 = await fetch('/api/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email }) });
         const data2 = await res2.json();
         if (data2.error) throw new Error(data2.error);
         setLinks(data2.links ?? []);
       }
 
-      // ── Actualizar contador según plan ────────────────
-      const creditosExpress = usuario.creditos_express ?? 0;
-
+      const ce = usuario.creditos_express ?? 0;
       if (usuario.plan === 'pro') {
-        await supabase.from('usuarios').update({
-          contratos_mes:    usuario.contratos_mes + 1,
-          contratos_usados: usuario.contratos_usados + 1,
-        }).eq('id', usuario.id);
+        await supabase.from('usuarios').update({ contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
         setUsuario({ ...usuario, contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 });
-
-      } else if (creditosExpress > 0) {
-        // Express: descuenta 1 crédito
-        await supabase.from('usuarios').update({
-          creditos_express: creditosExpress - 1,
-          contratos_usados: usuario.contratos_usados + 1,
-        }).eq('id', usuario.id);
-        setUsuario({ ...usuario, creditos_express: creditosExpress - 1, contratos_usados: usuario.contratos_usados + 1 });
-
+      } else if (ce > 0) {
+        await supabase.from('usuarios').update({ creditos_express: ce - 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
+        setUsuario({ ...usuario, creditos_express: ce - 1, contratos_usados: usuario.contratos_usados + 1 });
       } else {
-        // Gratis
-        await supabase.from('usuarios').update({
-          contratos_usados: usuario.contratos_usados + 1,
-        }).eq('id', usuario.id);
+        await supabase.from('usuarios').update({ contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
         setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1 });
       }
-      // ─────────────────────────────────────────────────
-
       setTiempo(Math.round((Date.now() - inicio) / 1000));
-    } catch {
-      setError('Hubo un error al generar el contrato. Intentá de nuevo.');
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Hubo un error al generar el contrato. Intentá de nuevo.'); }
+    finally { setLoading(false); }
   };
 
   const inp: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', color: '#111827', outline: 'none', boxSizing: 'border-box', fontFamily: 'Inter, sans-serif' };
   const lbl: React.CSSProperties = { fontSize: '13px', fontWeight: 500, color: '#374151', display: 'block', marginBottom: '6px' };
+  const sec: React.CSSProperties = { gridColumn: 'span 2', fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid #F3F4F6', paddingBottom: '6px', marginTop: '4px', fontFamily: 'Space Grotesk, sans-serif' };
 
   if (cargando) return (
     <main style={{ minHeight: '100vh', background: '#F8F9FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
@@ -205,16 +179,16 @@ export default function GenerarPage() {
     </main>
   );
 
-  // ── Variables de display ──────────────────────────────
   const creditosExpress  = usuario?.creditos_express ?? 0;
   const hasExpressCredit = creditosExpress > 0;
-  const planColor = usuario?.plan === 'pro' ? '#7C3AED' : hasExpressCredit ? '#0EA5E9' : '#6B7280';
-  const planLabel = usuario?.plan === 'pro' ? 'Pro'      : hasExpressCredit ? 'Express' : 'Gratis';
+  const planColor  = usuario?.plan === 'pro' ? '#7C3AED' : hasExpressCredit ? '#0EA5E9' : '#6B7280';
+  const planLabel  = usuario?.plan === 'pro' ? 'Pro'      : hasExpressCredit ? 'Express' : 'Gratis';
   const canGenerate = usuario?.plan === 'pro' || hasExpressCredit || (usuario?.contratos_usados ?? 0) < 1;
-  // ─────────────────────────────────────────────────────
+
+  const estadosCiviles = ['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Unión convivencial'];
 
   return (
-    <main style={{ minHeight: '100vh', background: '#F8F9FB', padding: '0', fontFamily: 'Inter, sans-serif' }}>
+    <main style={{ minHeight: '100vh', background: '#F8F9FB', fontFamily: 'Inter, sans-serif' }}>
 
       {/* Header */}
       <div style={{ background: '#0A1628', padding: '14px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -222,63 +196,47 @@ export default function GenerarPage() {
           Contrato<span style={{ color: '#F5A623' }}>Ya</span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>
-            Plan {planLabel}
-          </span>
-
-          {/* ── Contadores por plan ── */}
-          {usuario?.plan !== 'pro' && !hasExpressCredit && (
-            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-              {usuario?.contratos_usados}/1 contratos
-            </span>
-          )}
-          {hasExpressCredit && (
-            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-              {creditosExpress} contrato Express disponible
-            </span>
-          )}
-          {usuario?.plan === 'pro' && (
-            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-              {usuario.contratos_mes}/15 este mes
-            </span>
-          )}
-
+          <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>Plan {planLabel}</span>
+          {usuario?.plan !== 'pro' && !hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario?.contratos_usados}/1 contratos</span>}
+          {hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{creditosExpress} contrato Express disponible</span>}
+          {usuario?.plan === 'pro' && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario.contratos_mes}/15 este mes</span>}
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
-          <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            Salir
-          </button>
+          <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
         </div>
       </div>
 
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 20px' }}>
+        <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '8px', letterSpacing: '-0.5px' }}>Generá tu contrato</h1>
+        <p style={{ color: '#6B7280', fontSize: '16px', marginBottom: '32px' }}>Completá los datos y la IA genera tu contrato en segundos.</p>
 
-        <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '8px', letterSpacing: '-0.5px' }}>
-          Generá tu contrato
-        </h1>
-        <p style={{ color: '#6B7280', fontSize: '16px', marginBottom: '32px' }}>
-          Completá los datos y la IA genera tu contrato en segundos.
-        </p>
-
-        {/* Banner límite gratis — solo si no tiene crédito Express */}
         {usuario?.plan !== 'pro' && !hasExpressCredit && (usuario?.contratos_usados ?? 0) >= 1 && (
           <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#92400E', margin: '0 0 2px' }}>Ya usaste tu contrato gratuito</p>
               <p style={{ fontSize: '13px', color: '#B45309', margin: 0 }}>Elegí un plan para seguir generando contratos</p>
             </div>
-            <a href="/precios" style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', background: '#FDE68A', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none' }}>
-              Ver planes →
-            </a>
+            <a href="/precios" style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', background: '#FDE68A', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none' }}>Ver planes →</a>
           </div>
         )}
 
         {!contrato ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '40px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
 
+            {/* Selector tipo contrato */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              {[{ val: 'servicios', label: '💼  Servicios / Freelance' }, { val: 'alquiler', label: '🏠  Contrato de Alquiler' }].map(opt => (
+                <button key={opt.val} onClick={() => { setTipoContrato(opt.val as 'servicios' | 'alquiler'); setError(''); }}
+                  style={{ flex: 1, padding: '14px', borderRadius: '10px', cursor: 'pointer', border: tipoContrato === opt.val ? '2px solid #F5A623' : '1.5px solid #E5E7EB', background: tipoContrato === opt.val ? '#FFFBF0' : '#fff', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Selector firma */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '28px' }}>
               {[
-                { val: false, label: '📄  Solo PDF',          desc: 'Descarga directa' },
-                { val: true,  label: '✍️  Con firma digital',  desc: !canGenerate || (!hasExpressCredit && usuario?.plan !== 'pro') ? 'Requiere plan Express o Pro' : 'Ambas partes firman online' },
+                { val: false, label: '📄  Solo PDF',         desc: 'Descarga directa' },
+                { val: true,  label: '✍️  Con firma digital', desc: (!hasExpressCredit && usuario?.plan !== 'pro') ? 'Requiere plan Express o Pro' : 'Ambas partes firman online' },
               ].map(opt => (
                 <button key={String(opt.val)} onClick={() => setConFirma(opt.val)}
                   style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', cursor: 'pointer', border: conFirma === opt.val ? '2px solid #F5A623' : '1.5px solid #E5E7EB', background: conFirma === opt.val ? '#FFFBF0' : '#fff', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}>
@@ -288,44 +246,135 @@ export default function GenerarPage() {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              {campos.map((c) => (
-                <div key={c.name} style={{ gridColumn: c.span === 2 ? 'span 2' : 'span 1' }}>
-                  <label style={lbl}>{c.label}</label>
-                  <input name={c.name} value={form[c.name]} onChange={handleChange} placeholder={c.placeholder} style={inp} />
+            {/* ── FORM SERVICIOS ── */}
+            {tipoContrato === 'servicios' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                {campos.map((c) => (
+                  <div key={c.name} style={{ gridColumn: c.span === 2 ? 'span 2' : 'span 1' }}>
+                    <label style={lbl}>{c.label}</label>
+                    <input name={c.name} value={form[c.name]} onChange={handleChange} placeholder={c.placeholder} style={inp} />
+                  </div>
+                ))}
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Condiciones de pago</label><input name="condiciones_pago" value={form.condiciones_pago} onChange={handleChange} placeholder="Ej: 50% adelanto / 50% al entregar" style={inp} /></div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={lbl}>Moneda del contrato</label>
+                  <select name="moneda" value={form.moneda} onChange={handleChange} style={{ ...inp, background: 'white' }}>
+                    <option value="ARS">Pesos argentinos (ARS)</option>
+                    <option value="USD">Dólares (USD)</option>
+                    <option value="USDT">Dólares digitales (USDT)</option>
+                  </select>
                 </div>
-              ))}
-
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={lbl}>Condiciones de pago</label>
-                <input name="condiciones_pago" value={form.condiciones_pago} onChange={handleChange} placeholder="Ej: 50% adelanto / 50% al entregar" style={inp} />
-              </div>
-
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={lbl}>Moneda del contrato</label>
-                <select name="moneda" value={form.moneda} onChange={handleChange} style={{ ...inp, background: 'white' }}>
-                  <option value="ARS">Pesos argentinos (ARS)</option>
-                  <option value="USD">Dólares estadounidenses (USD)</option>
-                  <option value="USDT">Dólares digitales (USDT)</option>
-                </select>
-              </div>
-
-              {conFirma && (
-                <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
-                  <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Ambas partes recibirán un email para firmar digitalmente.</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                      <label style={lbl}>Tu email *</label>
-                      <input name="email_prestador" value={form.email_prestador} onChange={handleChange} placeholder="tu@email.com" type="email" style={inp} />
-                    </div>
-                    <div>
-                      <label style={lbl}>Email del cliente *</label>
-                      <input name="email_cliente" value={form.email_cliente} onChange={handleChange} placeholder="cliente@empresa.com" type="email" style={inp} />
+                {conFirma && (
+                  <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
+                    <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Ambas partes recibirán un email para firmar digitalmente.</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div><label style={lbl}>Tu email *</label><input name="email_prestador" value={form.email_prestador} onChange={handleChange} placeholder="tu@email.com" type="email" style={inp} /></div>
+                      <div><label style={lbl}>Email del cliente *</label><input name="email_cliente" value={form.email_cliente} onChange={handleChange} placeholder="cliente@empresa.com" type="email" style={inp} /></div>
                     </div>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* ── FORM ALQUILER ── */}
+            {tipoContrato === 'alquiler' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+
+                {/* Locador */}
+                <div style={sec}>Locador (Propietario)</div>
+                <div><label style={lbl}>Nombre completo *</label><input name="locador_nombre" value={formAlquiler.locador_nombre} onChange={handleChangeAlquiler} placeholder="Ej: Juan Pérez" style={inp} /></div>
+                <div><label style={lbl}>DNI / CUIT *</label><input name="locador_dni" value={formAlquiler.locador_dni} onChange={handleChangeAlquiler} placeholder="Ej: 20-12345678-9" style={inp} /></div>
+                <div><label style={lbl}>Estado civil</label><select name="locador_estado_civil" value={formAlquiler.locador_estado_civil} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{estadosCiviles.map(e => <option key={e}>{e}</option>)}</select></div>
+                <div><label style={lbl}>Email</label><input name="locador_email" value={formAlquiler.locador_email} onChange={handleChangeAlquiler} type="email" placeholder="locador@email.com" style={inp} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio real</label><input name="locador_domicilio" value={formAlquiler.locador_domicilio} onChange={handleChangeAlquiler} placeholder="Ej: Corrientes 1234, Rosario" style={inp} /></div>
+
+                {/* Locatario */}
+                <div style={sec}>Locatario (Inquilino)</div>
+                <div><label style={lbl}>Nombre completo *</label><input name="locatario_nombre" value={formAlquiler.locatario_nombre} onChange={handleChangeAlquiler} placeholder="Ej: María García" style={inp} /></div>
+                <div><label style={lbl}>DNI / CUIT *</label><input name="locatario_dni" value={formAlquiler.locatario_dni} onChange={handleChangeAlquiler} placeholder="Ej: 27-98765432-1" style={inp} /></div>
+                <div><label style={lbl}>Estado civil</label><select name="locatario_estado_civil" value={formAlquiler.locatario_estado_civil} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{estadosCiviles.map(e => <option key={e}>{e}</option>)}</select></div>
+                <div><label style={lbl}>Email</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
+
+                {/* Garante */}
+                <div style={sec}>Garante</div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={lbl}>Tipo de garantía</label>
+                  <select name="garante_tipo" value={formAlquiler.garante_tipo} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>
+                    <option>Propietaria</option><option>Recibo de Sueldo</option><option>Seguro de Caución</option>
+                  </select>
                 </div>
-              )}
-            </div>
+                <div><label style={lbl}>Nombre del garante</label><input name="garante_nombre" value={formAlquiler.garante_nombre} onChange={handleChangeAlquiler} placeholder="Ej: Carlos López" style={inp} /></div>
+                <div><label style={lbl}>DNI del garante</label><input name="garante_dni" value={formAlquiler.garante_dni} onChange={handleChangeAlquiler} placeholder="Ej: 25-11122233-4" style={inp} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio del garante</label><input name="garante_domicilio" value={formAlquiler.garante_domicilio} onChange={handleChangeAlquiler} placeholder="Ej: San Martín 456, Rosario" style={inp} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Email del garante</label><input name="garante_email" value={formAlquiler.garante_email} onChange={handleChangeAlquiler} type="email" placeholder="garante@email.com" style={inp} /></div>
+
+                {formAlquiler.garante_tipo === 'Propietaria' && (<>
+                  <div><label style={lbl}>Matrícula del inmueble</label><input name="garante_matricula" value={formAlquiler.garante_matricula} onChange={handleChangeAlquiler} placeholder="Ej: Matrícula 12345" style={inp} /></div>
+                  <div><label style={lbl}>Registro de la Propiedad</label><input name="garante_registro" value={formAlquiler.garante_registro} onChange={handleChangeAlquiler} placeholder="Ej: Tomo 5, Folio 200" style={inp} /></div>
+                  <div><label style={lbl}>Ciudad del inmueble en garantía</label><input name="garante_ciudad_prop" value={formAlquiler.garante_ciudad_prop} onChange={handleChangeAlquiler} placeholder="Ej: Rosario" style={inp} /></div>
+                  <div><label style={lbl}>Provincia</label><input name="garante_provincia_prop" value={formAlquiler.garante_provincia_prop} onChange={handleChangeAlquiler} placeholder="Ej: Santa Fe" style={inp} /></div>
+                </>)}
+                {formAlquiler.garante_tipo === 'Recibo de Sueldo' && (<>
+                  <div><label style={lbl}>Empresa empleadora</label><input name="garante_empresa" value={formAlquiler.garante_empresa} onChange={handleChangeAlquiler} placeholder="Ej: Empresa SA" style={inp} /></div>
+                  <div><label style={lbl}>Cargo / Antigüedad</label><input name="garante_cargo" value={formAlquiler.garante_cargo} onChange={handleChangeAlquiler} placeholder="Ej: Contador, 5 años" style={inp} /></div>
+                </>)}
+                {formAlquiler.garante_tipo === 'Seguro de Caución' && (<>
+                  <div><label style={lbl}>Aseguradora</label><input name="garante_aseguradora" value={formAlquiler.garante_aseguradora} onChange={handleChangeAlquiler} placeholder="Ej: Federación Patronal" style={inp} /></div>
+                  <div><label style={lbl}>Número de póliza</label><input name="garante_poliza" value={formAlquiler.garante_poliza} onChange={handleChangeAlquiler} placeholder="Ej: POL-2026-00123" style={inp} /></div>
+                </>)}
+
+                {/* Inmueble */}
+                <div style={sec}>El Inmueble</div>
+                <div><label style={lbl}>Tipo</label><select name="inmueble_tipo" value={formAlquiler.inmueble_tipo} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{['Departamento','Casa','Local comercial','Oficina'].map(t => <option key={t}>{t}</option>)}</select></div>
+                <div><label style={lbl}>Destino</label><select name="inmueble_destino" value={formAlquiler.inmueble_destino} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{['Vivienda familiar','Comercial','Profesional'].map(d => <option key={d}>{d}</option>)}</select></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Dirección exacta *</label><input name="inmueble_direccion" value={formAlquiler.inmueble_direccion} onChange={handleChangeAlquiler} placeholder="Ej: Córdoba 2500, Rosario" style={inp} /></div>
+                <div><label style={lbl}>Piso / Dpto</label><input name="inmueble_piso_dpto" value={formAlquiler.inmueble_piso_dpto} onChange={handleChangeAlquiler} placeholder="Ej: 3° B" style={inp} /></div>
+                <div><label style={lbl}>Código Postal</label><input name="inmueble_cp" value={formAlquiler.inmueble_cp} onChange={handleChangeAlquiler} placeholder="Ej: S2000" style={inp} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Estado de entrega</label><input name="inmueble_estado" value={formAlquiler.inmueble_estado} onChange={handleChangeAlquiler} placeholder="Ej: Buen estado general, pintura nueva" style={inp} /></div>
+
+                {/* Plazos */}
+                <div style={sec}>Plazos</div>
+                <div><label style={lbl}>Fecha de inicio</label><input name="fecha_inicio" value={formAlquiler.fecha_inicio} onChange={handleChangeAlquiler} placeholder="Ej: 01/07/2026" style={inp} /></div>
+                <div><label style={lbl}>Duración (meses)</label><input name="duracion_meses" value={formAlquiler.duracion_meses} onChange={handleChangeAlquiler} type="number" min="1" style={inp} /></div>
+
+                {/* Condiciones económicas */}
+                <div style={sec}>Condiciones Económicas</div>
+                <div><label style={lbl}>Monto primer alquiler *</label><input name="monto_alquiler" value={formAlquiler.monto_alquiler} onChange={handleChangeAlquiler} placeholder="Ej: 250000" style={inp} /></div>
+                <div><label style={lbl}>Moneda</label><select name="moneda_alquiler" value={formAlquiler.moneda_alquiler} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div>
+                <div><label style={lbl}>Índice de actualización</label><select name="indice" value={formAlquiler.indice} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{['ICL','IPC','CER','Fijo','Sin ajuste'].map(i => <option key={i}>{i}</option>)}</select></div>
+                <div><label style={lbl}>Periodicidad de ajuste</label><select name="periodicidad" value={formAlquiler.periodicidad} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{['Mensual','Trimestral','Cuatrimestral','Semestral','Anual'].map(p => <option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Días de pago (desde)</label><input name="dias_desde" value={formAlquiler.dias_desde} onChange={handleChangeAlquiler} type="number" min="1" max="28" style={inp} /></div>
+                <div><label style={lbl}>Días de pago (hasta)</label><input name="dias_hasta" value={formAlquiler.dias_hasta} onChange={handleChangeAlquiler} type="number" min="1" max="28" style={inp} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Método de pago</label><select name="metodo_pago" value={formAlquiler.metodo_pago} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}><option>Transferencia bancaria</option><option>Efectivo</option></select></div>
+
+                {/* Depósito */}
+                <div style={sec}>Depósito en Garantía</div>
+                <div><label style={lbl}>Monto del depósito</label><input name="monto_deposito" value={formAlquiler.monto_deposito} onChange={handleChangeAlquiler} placeholder="Ej: 250000" style={inp} /></div>
+                <div><label style={lbl}>Moneda del depósito</label><select name="moneda_deposito" value={formAlquiler.moneda_deposito} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div>
+
+                {/* Servicios */}
+                <div style={sec}>Servicios e Impuestos</div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={lbl}>¿Quién paga qué?</label>
+                  <textarea name="servicios_obs" value={formAlquiler.servicios_obs} onChange={handleChangeAlquiler} rows={3} style={{ ...inp, resize: 'vertical' }} />
+                </div>
+
+                {/* Resolución */}
+                <div style={sec}>Resolución y Jurisdicción</div>
+                <div><label style={lbl}>Preaviso de rescisión</label><select name="preaviso" value={formAlquiler.preaviso} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}><option>30 días</option><option>60 días</option></select></div>
+                <div><label style={lbl}>Jurisdicción</label><input name="jurisdiccion" value={formAlquiler.jurisdiccion} onChange={handleChangeAlquiler} placeholder="Ej: Tribunales Provinciales de Rosario" style={inp} /></div>
+
+                {conFirma && (
+                  <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
+                    <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Locador y locatario recibirán un email para firmar digitalmente.</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div><label style={lbl}>Email del locador *</label><input name="locador_email" value={formAlquiler.locador_email} onChange={handleChangeAlquiler} type="email" placeholder="locador@email.com" style={inp} /></div>
+                      <div><label style={lbl}>Email del locatario *</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && <p style={{ color: '#DC2626', fontSize: '14px', marginTop: '16px' }}>{error}</p>}
 
@@ -343,12 +392,8 @@ export default function GenerarPage() {
                   <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '20px', fontWeight: 600, color: '#111827', margin: 0 }}>✅ Contrato generado</h2>
                   <p style={{ color: '#16A34A', fontSize: '13px', marginTop: '4px' }}>Generado en {tiempo}s · Conforme a la ley argentina</p>
                 </div>
-                <button onClick={handleDescargar}
-                  style={{ padding: '10px 22px', borderRadius: '8px', background: '#0A1628', color: '#F5A623', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
-                  ↓ Descargar PDF
-                </button>
+                <button onClick={handleDescargar} style={{ padding: '10px 22px', borderRadius: '8px', background: '#0A1628', color: '#F5A623', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>↓ Descargar PDF</button>
               </div>
-
               {links.length > 0 && (
                 <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
                   <p style={{ fontSize: '14px', fontWeight: 600, color: '#15803D', margin: '0 0 16px' }}>✍️ Links para firma digital</p>
@@ -360,15 +405,9 @@ export default function GenerarPage() {
                   ))}
                 </div>
               )}
-
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: '13px', lineHeight: '1.9', color: '#374151', fontFamily: 'Georgia, serif', borderTop: '1px solid #F3F4F6', paddingTop: '24px', margin: 0 }}>
-                {contrato}
-              </pre>
+              <pre style={{ whiteSpace: 'pre-wrap', fontSize: '13px', lineHeight: '1.9', color: '#374151', fontFamily: 'Georgia, serif', borderTop: '1px solid #F3F4F6', paddingTop: '24px', margin: 0 }}>{contrato}</pre>
             </div>
-            <button onClick={() => { setContrato(''); setLinks([]); }}
-              style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: '14px', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-              ← Generar otro contrato
-            </button>
+            <button onClick={() => { setContrato(''); setLinks([]); }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: '14px', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>← Generar otro contrato</button>
           </div>
         )}
       </div>
