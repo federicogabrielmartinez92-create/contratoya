@@ -22,8 +22,29 @@ function ExitoContent() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      await supabase.from('usuarios').update({ plan }).eq('id', userId);
-      setMensaje('¡Pago exitoso! Tu plan fue activado.');
+      if (plan === 'express') {
+        const { data: usuario } = await supabase
+          .from('usuarios')
+          .select('creditos_express')
+          .eq('id', userId)
+          .single();
+
+        await supabase
+          .from('usuarios')
+          .update({ creditos_express: (usuario?.creditos_express ?? 0) + 1 })
+          .eq('id', userId);
+
+        setMensaje('¡Pago exitoso! Tenés 1 contrato Express con firma disponible.');
+
+      } else if (plan === 'pro') {
+        await supabase
+          .from('usuarios')
+          .update({ plan: 'pro', contratos_mes: 0 })
+          .eq('id', userId);
+
+        setMensaje('¡Pago exitoso! Tu plan Pro fue activado.');
+      }
+
       setTimeout(() => router.push('/generar'), 2500);
     };
 

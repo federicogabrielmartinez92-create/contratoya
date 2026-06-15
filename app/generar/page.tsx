@@ -28,6 +28,7 @@ interface Usuario {
   plan: string;
   contratos_usados: number;
   contratos_mes: number;
+  creditos_express: number; // ← NUEVO
 }
 
 export default function GenerarPage() {
@@ -65,9 +66,8 @@ export default function GenerarPage() {
       if (data) {
         setUsuario(data);
       } else {
-        // Si no existe el usuario en la tabla, lo creamos
         await supabase.from('usuarios').insert({ id: user.id, email: user.email });
-        setUsuario({ id: user.id, email: user.email!, plan: 'gratis', contratos_usados: 0, contratos_mes: 0 });
+        setUsuario({ id: user.id, email: user.email!, plan: 'gratis', contratos_usados: 0, contratos_mes: 0, creditos_express: 0 });
       }
       setCargando(false);
     };
@@ -107,19 +107,29 @@ export default function GenerarPage() {
   const handleGenerar = async () => {
     if (!usuario) return;
 
-    // Verificar límites del plan
-    if (usuario.plan === 'gratis' && usuario.contratos_usados >= 1) {
-      setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.');
+    // ── Límites por plan ──────────────────────────────────
+    const creditosExpress = usuario.creditos_express ?? 0;
+
+    if (usuario.plan === 'pro') {
+      if (usuario.contratos_mes >= 15) {
+        setError('Llegaste al límite de 15 contratos del plan Pro este mes.');
+        return;
+      }
+    } else if (creditosExpress > 0) {
+      // Tiene crédito Express → puede generar con firma, sin tope
+    } else {
+      // Gratis sin créditos
+      if (usuario.contratos_usados >= 1) {
+        setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.');
+        return;
+      }
+    }
+
+    if (conFirma && usuario.plan !== 'pro' && (usuario.creditos_express ?? 0) === 0) {
+      setError('La firma digital requiere un plan Express o Pro.');
       return;
     }
-    if (usuario.plan === 'pro' && usuario.contratos_mes >= 15) {
-      setError('Llegaste al límite de 15 contratos del plan Pro este mes.');
-      return;
-    }
-    if (conFirma && usuario.plan === 'gratis') {
-      setError('La firma digital no está disponible en el plan gratuito.');
-      return;
-    }
+    // ─────────────────────────────────────────────────────
 
     if (!form.prestador || !form.cliente || !form.servicio || !form.monto || !form.cuit_prestador) {
       setError('Completá los campos obligatorios (*)'); return;
@@ -151,12 +161,32 @@ export default function GenerarPage() {
         setLinks(data2.links ?? []);
       }
 
-      // Incrementar contador
-      await supabase.from('usuarios').update({
-        contratos_usados: usuario.contratos_usados + 1,
-        contratos_mes: usuario.contratos_mes + 1,
-      }).eq('id', usuario.id);
-      setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1, contratos_mes: usuario.contratos_mes + 1 });
+      // ── Actualizar contador según plan ────────────────
+      const creditosExpress = usuario.creditos_express ?? 0;
+
+      if (usuario.plan === 'pro') {
+        await supabase.from('usuarios').update({
+          contratos_mes:    usuario.contratos_mes + 1,
+          contratos_usados: usuario.contratos_usados + 1,
+        }).eq('id', usuario.id);
+        setUsuario({ ...usuario, contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 });
+
+      } else if (creditosExpress > 0) {
+        // Express: descuenta 1 crédito
+        await supabase.from('usuarios').update({
+          creditos_express: creditosExpress - 1,
+          contratos_usados: usuario.contratos_usados + 1,
+        }).eq('id', usuario.id);
+        setUsuario({ ...usuario, creditos_express: creditosExpress - 1, contratos_usados: usuario.contratos_usados + 1 });
+
+      } else {
+        // Gratis
+        await supabase.from('usuarios').update({
+          contratos_usados: usuario.contratos_usados + 1,
+        }).eq('id', usuario.id);
+        setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1 });
+      }
+      // ─────────────────────────────────────────────────
 
       setTiempo(Math.round((Date.now() - inicio) / 1000));
     } catch {
@@ -175,8 +205,13 @@ export default function GenerarPage() {
     </main>
   );
 
-  const planColor = usuario?.plan === 'pro' ? '#7C3AED' : usuario?.plan === 'express' ? '#0EA5E9' : '#6B7280';
-  const planLabel = usuario?.plan === 'pro' ? 'Pro' : usuario?.plan === 'express' ? 'Express' : 'Gratis';
+  // ── Variables de display ──────────────────────────────
+  const creditosExpress  = usuario?.creditos_express ?? 0;
+  const hasExpressCredit = creditosExpress > 0;
+  const planColor = usuario?.plan === 'pro' ? '#7C3AED' : hasExpressCredit ? '#0EA5E9' : '#6B7280';
+  const planLabel = usuario?.plan === 'pro' ? 'Pro'      : hasExpressCredit ? 'Express' : 'Gratis';
+  const canGenerate = usuario?.plan === 'pro' || hasExpressCredit || (usuario?.contratos_usados ?? 0) < 1;
+  // ─────────────────────────────────────────────────────
 
   return (
     <main style={{ minHeight: '100vh', background: '#F8F9FB', padding: '0', fontFamily: 'Inter, sans-serif' }}>
@@ -190,9 +225,16 @@ export default function GenerarPage() {
           <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>
             Plan {planLabel}
           </span>
-          {usuario?.plan === 'gratis' && (
+
+          {/* ── Contadores por plan ── */}
+          {usuario?.plan !== 'pro' && !hasExpressCredit && (
             <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-              {usuario.contratos_usados}/1 contratos
+              {usuario?.contratos_usados}/1 contratos
+            </span>
+          )}
+          {hasExpressCredit && (
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+              {creditosExpress} contrato Express disponible
             </span>
           )}
           {usuario?.plan === 'pro' && (
@@ -200,6 +242,7 @@ export default function GenerarPage() {
               {usuario.contratos_mes}/15 este mes
             </span>
           )}
+
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
           <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>
             Salir
@@ -216,8 +259,8 @@ export default function GenerarPage() {
           Completá los datos y la IA genera tu contrato en segundos.
         </p>
 
-        {/* Banner límite gratis */}
-        {usuario?.plan === 'gratis' && usuario.contratos_usados >= 1 && (
+        {/* Banner límite gratis — solo si no tiene crédito Express */}
+        {usuario?.plan !== 'pro' && !hasExpressCredit && (usuario?.contratos_usados ?? 0) >= 1 && (
           <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#92400E', margin: '0 0 2px' }}>Ya usaste tu contrato gratuito</p>
@@ -234,8 +277,8 @@ export default function GenerarPage() {
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '28px' }}>
               {[
-                { val: false, label: '📄  Solo PDF', desc: usuario?.plan === 'gratis' ? 'Plan gratuito' : 'Descarga directa' },
-                { val: true,  label: '✍️  Con firma digital', desc: usuario?.plan === 'gratis' ? 'Requiere plan Express o Pro' : '$3.99 USD · Ambas partes firman online' },
+                { val: false, label: '📄  Solo PDF',          desc: 'Descarga directa' },
+                { val: true,  label: '✍️  Con firma digital',  desc: !canGenerate || (!hasExpressCredit && usuario?.plan !== 'pro') ? 'Requiere plan Express o Pro' : 'Ambas partes firman online' },
               ].map(opt => (
                 <button key={String(opt.val)} onClick={() => setConFirma(opt.val)}
                   style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', cursor: 'pointer', border: conFirma === opt.val ? '2px solid #F5A623' : '1.5px solid #E5E7EB', background: conFirma === opt.val ? '#FFFBF0' : '#fff', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}>
@@ -286,8 +329,8 @@ export default function GenerarPage() {
 
             {error && <p style={{ color: '#DC2626', fontSize: '14px', marginTop: '16px' }}>{error}</p>}
 
-            <button onClick={handleGenerar} disabled={loading || (usuario?.plan === 'gratis' && usuario.contratos_usados >= 1)}
-              style={{ marginTop: '28px', width: '100%', padding: '14px', borderRadius: '10px', background: (loading || (usuario?.plan === 'gratis' && usuario.contratos_usados >= 1)) ? '#9CA3AF' : '#F5A623', color: '#0A1628', border: 'none', fontSize: '16px', fontWeight: 600, cursor: (loading || (usuario?.plan === 'gratis' && usuario.contratos_usados >= 1)) ? 'not-allowed' : 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
+            <button onClick={handleGenerar} disabled={loading || !canGenerate}
+              style={{ marginTop: '28px', width: '100%', padding: '14px', borderRadius: '10px', background: (loading || !canGenerate) ? '#9CA3AF' : '#F5A623', color: '#0A1628', border: 'none', fontSize: '16px', fontWeight: 600, cursor: (loading || !canGenerate) ? 'not-allowed' : 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
               {loading ? '⏳  Generando...' : conFirma ? '✍️  Generar y enviar a firmar' : '⚡  Generar contrato'}
             </button>
           </div>
