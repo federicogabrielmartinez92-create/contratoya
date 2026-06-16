@@ -22,26 +22,6 @@ const campos = [
   { name: 'fecha',          label: 'Fecha',                  placeholder: 'Ej: 10/06/2026',                 span: 1 },
 ];
 
-const initialFormAlquiler: Record<string, string> = {
-  locador_nombre: '', locador_dni: '', locador_estado_civil: 'Soltero/a', locador_domicilio: '', locador_email: '',
-  locatario_nombre: '', locatario_dni: '', locatario_estado_civil: 'Soltero/a', locatario_email: '',
-  garante_tipo: 'Propietaria',
-  garante_nombre: '', garante_dni: '', garante_domicilio: '', garante_email: '',
-  garante_matricula: '', garante_registro: '', garante_ciudad_prop: '', garante_provincia_prop: '',
-  garante_empresa: '', garante_cargo: '',
-  garante_aseguradora: '', garante_poliza: '',
-  inmueble_tipo: 'Departamento', inmueble_direccion: '', inmueble_piso_dpto: '',
-  inmueble_cp: '', inmueble_destino: 'Vivienda familiar', inmueble_estado: '',
-  fecha_inicio: new Date().toLocaleDateString('es-AR'),
-  duracion_meses: '24',
-  monto_alquiler: '', moneda_alquiler: 'ARS',
-  indice: 'ICL', periodicidad: 'Cuatrimestral',
-  dias_desde: '1', dias_hasta: '10', metodo_pago: 'Transferencia bancaria',
-  monto_deposito: '', moneda_deposito: 'ARS',
-  servicios_obs: 'El locatario abona servicios (luz, gas, agua, internet) y expensas ordinarias. El locador abona impuesto inmobiliario y expensas extraordinarias.',
-  preaviso: '60 días', jurisdiccion: 'Tribunales Provinciales de Rosario',
-};
-
 type GaranteData = {
   tipo: string; nombre: string; dni: string; domicilio: string; email: string;
   matricula: string; registro: string; ciudad_prop: string; provincia_prop: string;
@@ -54,6 +34,20 @@ const initialGarante: GaranteData = {
   empresa: '', cargo: '', aseguradora: '', poliza: '',
 };
 
+const initialFormAlquiler: Record<string, string> = {
+  locador_nombre: '', locador_dni: '', locador_estado_civil: 'Soltero/a', locador_domicilio: '', locador_email: '',
+  locatario_nombre: '', locatario_dni: '', locatario_estado_civil: 'Soltero/a', locatario_email: '',
+  inmueble_tipo: 'Departamento', inmueble_direccion: '', inmueble_piso_dpto: '',
+  inmueble_cp: '', inmueble_destino: 'Vivienda familiar', inmueble_estado: '',
+  fecha_inicio: new Date().toLocaleDateString('es-AR'),
+  duracion_meses: '24',
+  monto_alquiler: '', moneda_alquiler: 'ARS',
+  indice: 'ICL', periodicidad: 'Cuatrimestral',
+  dias_desde: '1', dias_hasta: '10', metodo_pago: 'Transferencia bancaria',
+  monto_deposito: '', moneda_deposito: 'ARS',
+  servicios_obs: 'El locatario abona servicios (luz, gas, agua, internet) y expensas ordinarias. El locador abona impuesto inmobiliario y expensas extraordinarias.',
+  preaviso: '60 días', jurisdiccion: 'Tribunales Provinciales de Rosario',
+};
 
 interface Usuario {
   id: string; email: string; plan: string;
@@ -62,11 +56,10 @@ interface Usuario {
 
 export default function GenerarPage() {
   const router = useRouter();
-  const [usuario, setUsuario]         = useState<Usuario | null>(null);
-  const [cargando, setCargando]       = useState(true);
+  const [usuario, setUsuario]           = useState<Usuario | null>(null);
+  const [cargando, setCargando]         = useState(true);
   const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
-
-  const [form, setForm] = useState<Record<string, string>>({
+  const [form, setForm]                 = useState<Record<string, string>>({
     prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
     servicio: '', monto: '', plazo: '', ciudad: '',
     fecha: new Date().toLocaleDateString('es-AR'),
@@ -74,15 +67,13 @@ export default function GenerarPage() {
     moneda: 'ARS', email_prestador: '', email_cliente: '',
   });
   const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
-  
-  const [garantes, setGarantes] = useState<GaranteData[]>([{ ...initialGarante }]);
-
-  const [conFirma, setConFirma] = useState(false);
-  const [contrato, setContrato] = useState('');
-  const [links,    setLinks]    = useState<{ nombre: string; url: string }[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [tiempo,   setTiempo]   = useState(0);
+  const [garantes, setGarantes]         = useState<GaranteData[]>([{ ...initialGarante }]);
+  const [conFirma, setConFirma]         = useState(false);
+  const [contrato, setContrato]         = useState('');
+  const [links, setLinks]               = useState<{ nombre: string; url: string }[]>([]);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [tiempo, setTiempo]             = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -101,17 +92,12 @@ export default function GenerarPage() {
     init();
   }, [router]);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/'); };
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-  const handleChangeAlquiler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
-
-  const handleChangeGarante = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-  setGarantes(garantes.map((g, i) => i === idx ? { ...g, [e.target.name]: e.target.value } : g));
-
-  const agregarGarante = () => setGarantes([...garantes, { ...initialGarante }]);
-  const removerGarante = (idx: number) => setGarantes(garantes.filter((_, i) => i !== idx));
+  const handleLogout        = async () => { await supabase.auth.signOut(); router.push('/'); };
+  const handleChange        = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChangeAlquiler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
+  const handleChangeGarante  = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setGarantes(garantes.map((g, i) => i === idx ? { ...g, [e.target.name]: e.target.value } : g));
+  const agregarGarante       = () => setGarantes([...garantes, { ...initialGarante }]);
+  const removerGarante       = (idx: number) => setGarantes(garantes.filter((_, i) => i !== idx));
 
   const crearPDF = (texto: string) => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -124,7 +110,7 @@ export default function GenerarPage() {
     return doc;
   };
   const generarPDFBase64 = (texto: string) => crearPDF(texto).output('datauristring').split(',')[1];
-  const handleDescargar = () => {
+  const handleDescargar  = () => {
     const nombre = tipoContrato === 'alquiler'
       ? `contrato-alquiler-${formAlquiler.locatario_nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`
       : `contrato-${form.cliente.replace(/\s+/g, '-').toLowerCase()}.pdf`;
@@ -142,9 +128,7 @@ export default function GenerarPage() {
     } else {
       if (usuario.contratos_usados >= 1) { setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.'); return; }
     }
-    if (conFirma && usuario.plan !== 'pro' && creditosExpress === 0) {
-      setError('La firma digital requiere un plan Express o Pro.'); return;
-    }
+    if (conFirma && usuario.plan !== 'pro' && creditosExpress === 0) { setError('La firma digital requiere un plan Express o Pro.'); return; }
 
     if (tipoContrato === 'servicios') {
       if (!form.prestador || !form.cliente || !form.servicio || !form.monto || !form.cuit_prestador) { setError('Completá los campos obligatorios (*)'); return; }
@@ -161,7 +145,8 @@ export default function GenerarPage() {
       const payload = tipoContrato === 'alquiler'
         ? { tipo: 'alquiler', ...formAlquiler, garantes }
         : { tipo: 'servicios', ...form };
-      const res1 = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+      const res1  = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data1 = await res1.json();
       if (data1.error) throw new Error(data1.error);
       setContrato(data1.contrato);
@@ -170,7 +155,7 @@ export default function GenerarPage() {
         const base64_pdf = generarPDFBase64(data1.contrato);
         const f1 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locador_nombre,   email: formAlquiler.locador_email }   : { nombre: form.prestador, email: form.email_prestador };
         const f2 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email } : { nombre: form.cliente,    email: form.email_cliente };
-        const res2 = await fetch('/api/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email }) });
+        const res2  = await fetch('/api/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email }) });
         const data2 = await res2.json();
         if (data2.error) throw new Error(data2.error);
         setLinks(data2.links ?? []);
@@ -204,10 +189,9 @@ export default function GenerarPage() {
 
   const creditosExpress  = usuario?.creditos_express ?? 0;
   const hasExpressCredit = creditosExpress > 0;
-  const planColor  = usuario?.plan === 'pro' ? '#7C3AED' : hasExpressCredit ? '#0EA5E9' : '#6B7280';
-  const planLabel  = usuario?.plan === 'pro' ? 'Pro'      : hasExpressCredit ? 'Express' : 'Gratis';
+  const planColor   = usuario?.plan === 'pro' ? '#7C3AED' : hasExpressCredit ? '#0EA5E9' : '#6B7280';
+  const planLabel   = usuario?.plan === 'pro' ? 'Pro'     : hasExpressCredit ? 'Express' : 'Gratis';
   const canGenerate = usuario?.plan === 'pro' || hasExpressCredit || (usuario?.contratos_usados ?? 0) < 1;
-
   const estadosCiviles = ['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Unión convivencial'];
 
   return (
@@ -318,12 +302,11 @@ export default function GenerarPage() {
                 <div><label style={lbl}>Estado civil</label><select name="locatario_estado_civil" value={formAlquiler.locatario_estado_civil} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{estadosCiviles.map(e => <option key={e}>{e}</option>)}</select></div>
                 <div><label style={lbl}>Email</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
 
-                {/* Garante */}
+                {/* Garantes */}
                 <div style={sec}>Garante{garantes.length > 1 ? 's' : ''}</div>
 
                 {garantes.map((garante, idx) => (
                   <React.Fragment key={idx}>
-
                     {garantes.length > 1 && (
                       <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F9FAFB', borderRadius: '8px', padding: '8px 12px' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Garante {idx + 1}</span>
@@ -335,7 +318,6 @@ export default function GenerarPage() {
                         )}
                       </div>
                     )}
-
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={lbl}>Tipo de garantía</label>
                       <select name="tipo" value={garante.tipo} onChange={(e) => handleChangeGarante(idx, e)} style={{ ...inp, background: 'white' }}>
@@ -346,7 +328,6 @@ export default function GenerarPage() {
                     <div><label style={lbl}>DNI del garante</label><input name="dni" value={garante.dni} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: 25-11122233-4" style={inp} /></div>
                     <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio del garante</label><input name="domicilio" value={garante.domicilio} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: San Martín 456, Rosario" style={inp} /></div>
                     <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Email del garante</label><input name="email" value={garante.email} onChange={(e) => handleChangeGarante(idx, e)} type="email" placeholder="garante@email.com" style={inp} /></div>
-
                     {garante.tipo === 'Propietaria' && (<>
                       <div><label style={lbl}>Matrícula del inmueble</label><input name="matricula" value={garante.matricula} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Matrícula 12345" style={inp} /></div>
                       <div><label style={lbl}>Registro de la Propiedad</label><input name="registro" value={garante.registro} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Tomo 5, Folio 200" style={inp} /></div>
@@ -361,7 +342,6 @@ export default function GenerarPage() {
                       <div><label style={lbl}>Aseguradora</label><input name="aseguradora" value={garante.aseguradora} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Federación Patronal" style={inp} /></div>
                       <div><label style={lbl}>Número de póliza</label><input name="poliza" value={garante.poliza} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: POL-2026-00123" style={inp} /></div>
                     </>)}
-
                   </React.Fragment>
                 ))}
 
