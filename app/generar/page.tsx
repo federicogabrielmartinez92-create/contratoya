@@ -42,6 +42,19 @@ const initialFormAlquiler: Record<string, string> = {
   preaviso: '60 días', jurisdiccion: 'Tribunales Provinciales de Rosario',
 };
 
+type GaranteData = {
+  tipo: string; nombre: string; dni: string; domicilio: string; email: string;
+  matricula: string; registro: string; ciudad_prop: string; provincia_prop: string;
+  empresa: string; cargo: string; aseguradora: string; poliza: string;
+};
+
+const initialGarante: GaranteData = {
+  tipo: 'Propietaria', nombre: '', dni: '', domicilio: '', email: '',
+  matricula: '', registro: '', ciudad_prop: '', provincia_prop: '',
+  empresa: '', cargo: '', aseguradora: '', poliza: '',
+};
+
+
 interface Usuario {
   id: string; email: string; plan: string;
   contratos_usados: number; contratos_mes: number; creditos_express: number;
@@ -61,6 +74,8 @@ export default function GenerarPage() {
     moneda: 'ARS', email_prestador: '', email_cliente: '',
   });
   const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
+  
+  const [garantes, setGarantes] = useState<GaranteData[]>([{ ...initialGarante }]);
 
   const [conFirma, setConFirma] = useState(false);
   const [contrato, setContrato] = useState('');
@@ -91,6 +106,12 @@ export default function GenerarPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   const handleChangeAlquiler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
+
+  const handleChangeGarante = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  setGarantes(garantes.map((g, i) => i === idx ? { ...g, [e.target.name]: e.target.value } : g));
+
+  const agregarGarante = () => setGarantes([...garantes, { ...initialGarante }]);
+  const removerGarante = (idx: number) => setGarantes(garantes.filter((_, i) => i !== idx));
 
   const crearPDF = (texto: string) => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -137,7 +158,9 @@ export default function GenerarPage() {
     const inicio = Date.now();
 
     try {
-      const payload = tipoContrato === 'alquiler' ? { tipo: 'alquiler', ...formAlquiler } : { tipo: 'servicios', ...form };
+      const payload = tipoContrato === 'alquiler'
+        ? { tipo: 'alquiler', ...formAlquiler, garantes }
+        : { tipo: 'servicios', ...form };
       const res1 = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data1 = await res1.json();
       if (data1.error) throw new Error(data1.error);
@@ -296,32 +319,60 @@ export default function GenerarPage() {
                 <div><label style={lbl}>Email</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
 
                 {/* Garante */}
-                <div style={sec}>Garante</div>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={lbl}>Tipo de garantía</label>
-                  <select name="garante_tipo" value={formAlquiler.garante_tipo} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>
-                    <option>Propietaria</option><option>Recibo de Sueldo</option><option>Seguro de Caución</option>
-                  </select>
-                </div>
-                <div><label style={lbl}>Nombre del garante</label><input name="garante_nombre" value={formAlquiler.garante_nombre} onChange={handleChangeAlquiler} placeholder="Ej: Carlos López" style={inp} /></div>
-                <div><label style={lbl}>DNI del garante</label><input name="garante_dni" value={formAlquiler.garante_dni} onChange={handleChangeAlquiler} placeholder="Ej: 25-11122233-4" style={inp} /></div>
-                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio del garante</label><input name="garante_domicilio" value={formAlquiler.garante_domicilio} onChange={handleChangeAlquiler} placeholder="Ej: San Martín 456, Rosario" style={inp} /></div>
-                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Email del garante</label><input name="garante_email" value={formAlquiler.garante_email} onChange={handleChangeAlquiler} type="email" placeholder="garante@email.com" style={inp} /></div>
+                <div style={sec}>Garante{garantes.length > 1 ? 's' : ''}</div>
 
-                {formAlquiler.garante_tipo === 'Propietaria' && (<>
-                  <div><label style={lbl}>Matrícula del inmueble</label><input name="garante_matricula" value={formAlquiler.garante_matricula} onChange={handleChangeAlquiler} placeholder="Ej: Matrícula 12345" style={inp} /></div>
-                  <div><label style={lbl}>Registro de la Propiedad</label><input name="garante_registro" value={formAlquiler.garante_registro} onChange={handleChangeAlquiler} placeholder="Ej: Tomo 5, Folio 200" style={inp} /></div>
-                  <div><label style={lbl}>Ciudad del inmueble en garantía</label><input name="garante_ciudad_prop" value={formAlquiler.garante_ciudad_prop} onChange={handleChangeAlquiler} placeholder="Ej: Rosario" style={inp} /></div>
-                  <div><label style={lbl}>Provincia</label><input name="garante_provincia_prop" value={formAlquiler.garante_provincia_prop} onChange={handleChangeAlquiler} placeholder="Ej: Santa Fe" style={inp} /></div>
-                </>)}
-                {formAlquiler.garante_tipo === 'Recibo de Sueldo' && (<>
-                  <div><label style={lbl}>Empresa empleadora</label><input name="garante_empresa" value={formAlquiler.garante_empresa} onChange={handleChangeAlquiler} placeholder="Ej: Empresa SA" style={inp} /></div>
-                  <div><label style={lbl}>Cargo / Antigüedad</label><input name="garante_cargo" value={formAlquiler.garante_cargo} onChange={handleChangeAlquiler} placeholder="Ej: Contador, 5 años" style={inp} /></div>
-                </>)}
-                {formAlquiler.garante_tipo === 'Seguro de Caución' && (<>
-                  <div><label style={lbl}>Aseguradora</label><input name="garante_aseguradora" value={formAlquiler.garante_aseguradora} onChange={handleChangeAlquiler} placeholder="Ej: Federación Patronal" style={inp} /></div>
-                  <div><label style={lbl}>Número de póliza</label><input name="garante_poliza" value={formAlquiler.garante_poliza} onChange={handleChangeAlquiler} placeholder="Ej: POL-2026-00123" style={inp} /></div>
-                </>)}
+                {garantes.map((garante, idx) => (
+                  <React.Fragment key={idx}>
+
+                    {garantes.length > 1 && (
+                      <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F9FAFB', borderRadius: '8px', padding: '8px 12px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Garante {idx + 1}</span>
+                        {idx > 0 && (
+                          <button onClick={() => removerGarante(idx)}
+                            style={{ fontSize: '12px', color: '#DC2626', background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+                            − Eliminar
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={lbl}>Tipo de garantía</label>
+                      <select name="tipo" value={garante.tipo} onChange={(e) => handleChangeGarante(idx, e)} style={{ ...inp, background: 'white' }}>
+                        <option>Propietaria</option><option>Recibo de Sueldo</option><option>Seguro de Caución</option>
+                      </select>
+                    </div>
+                    <div><label style={lbl}>Nombre del garante</label><input name="nombre" value={garante.nombre} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Carlos López" style={inp} /></div>
+                    <div><label style={lbl}>DNI del garante</label><input name="dni" value={garante.dni} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: 25-11122233-4" style={inp} /></div>
+                    <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio del garante</label><input name="domicilio" value={garante.domicilio} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: San Martín 456, Rosario" style={inp} /></div>
+                    <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Email del garante</label><input name="email" value={garante.email} onChange={(e) => handleChangeGarante(idx, e)} type="email" placeholder="garante@email.com" style={inp} /></div>
+
+                    {garante.tipo === 'Propietaria' && (<>
+                      <div><label style={lbl}>Matrícula del inmueble</label><input name="matricula" value={garante.matricula} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Matrícula 12345" style={inp} /></div>
+                      <div><label style={lbl}>Registro de la Propiedad</label><input name="registro" value={garante.registro} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Tomo 5, Folio 200" style={inp} /></div>
+                      <div><label style={lbl}>Ciudad del inmueble en garantía</label><input name="ciudad_prop" value={garante.ciudad_prop} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Rosario" style={inp} /></div>
+                      <div><label style={lbl}>Provincia</label><input name="provincia_prop" value={garante.provincia_prop} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Santa Fe" style={inp} /></div>
+                    </>)}
+                    {garante.tipo === 'Recibo de Sueldo' && (<>
+                      <div><label style={lbl}>Empresa empleadora</label><input name="empresa" value={garante.empresa} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Empresa SA" style={inp} /></div>
+                      <div><label style={lbl}>Cargo / Antigüedad</label><input name="cargo" value={garante.cargo} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Contador, 5 años" style={inp} /></div>
+                    </>)}
+                    {garante.tipo === 'Seguro de Caución' && (<>
+                      <div><label style={lbl}>Aseguradora</label><input name="aseguradora" value={garante.aseguradora} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: Federación Patronal" style={inp} /></div>
+                      <div><label style={lbl}>Número de póliza</label><input name="poliza" value={garante.poliza} onChange={(e) => handleChangeGarante(idx, e)} placeholder="Ej: POL-2026-00123" style={inp} /></div>
+                    </>)}
+
+                  </React.Fragment>
+                ))}
+
+                {garantes.length < 3 && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <button onClick={agregarGarante}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #F5A623', background: '#FFFBF0', color: '#92400E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                      + Agregar otro garante
+                    </button>
+                  </div>
+                )}
 
                 {/* Inmueble */}
                 <div style={sec}>El Inmueble</div>

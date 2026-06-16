@@ -16,26 +16,22 @@ export async function POST(request: NextRequest) {
       const {
         locador_nombre, locador_dni, locador_estado_civil, locador_domicilio, locador_email,
         locatario_nombre, locatario_dni, locatario_estado_civil, locatario_email,
-        garante_tipo, garante_nombre, garante_dni, garante_domicilio, garante_email,
-        garante_matricula, garante_registro, garante_ciudad_prop, garante_provincia_prop,
-        garante_empresa, garante_cargo, garante_aseguradora, garante_poliza,
+        garantes = [],
         inmueble_tipo, inmueble_direccion, inmueble_piso_dpto, inmueble_cp,
-        inmueble_destino, inmueble_estado,
-        fecha_inicio, duracion_meses,
+       inmueble_destino, inmueble_estado,
+       fecha_inicio, duracion_meses,
         monto_alquiler, moneda_alquiler, indice, periodicidad, dias_desde, dias_hasta, metodo_pago,
-        monto_deposito, moneda_deposito,
-        servicios_obs, preaviso, jurisdiccion,
+       monto_deposito, moneda_deposito,
+       servicios_obs, preaviso, jurisdiccion,
       } = body;
 
-      // Detalle del garante según tipo
-      let detalleGarante = '';
-      if (garante_tipo === 'Propietaria') {
-        detalleGarante = `Garantía propietaria. Matrícula: ${garante_matricula}, Registro: ${garante_registro}, Ubicación: ${garante_ciudad_prop}, ${garante_provincia_prop}.`;
-      } else if (garante_tipo === 'Recibo de Sueldo') {
-        detalleGarante = `Garantía por recibo de sueldo. Empresa: ${garante_empresa}, Cargo/Antigüedad: ${garante_cargo}.`;
-      } else if (garante_tipo === 'Seguro de Caución') {
-        detalleGarante = `Garantía por seguro de caución. Aseguradora: ${garante_aseguradora}, Póliza N°: ${garante_poliza}.`;
-      }
+      const garantesTexto = garantes.map((g: Record<string, string>, idx: number) => {
+        let detalle = '';
+        if (g.tipo === 'Propietaria')       detalle = `Garantía propietaria. Matrícula: ${g.matricula}, Registro: ${g.registro}, Ubicación: ${g.ciudad_prop}, ${g.provincia_prop}.`;
+        if (g.tipo === 'Recibo de Sueldo')  detalle = `Garantía por recibo de sueldo. Empresa: ${g.empresa}, Cargo: ${g.cargo}.`;
+       if (g.tipo === 'Seguro de Caución') detalle = `Garantía por seguro de caución. Aseguradora: ${g.aseguradora}, Póliza N°: ${g.poliza}.`;
+       return `GARANTE ${idx + 1}: ${g.nombre}, DNI: ${g.dni}, Domicilio: ${g.domicilio}, Email: ${g.email}\nTipo: ${g.tipo}. ${detalle}`;
+      }).join('\n\n');
 
       prompt = `Generá un contrato de locación (alquiler) completo y formal conforme a la legislación argentina vigente (Ley 27.551 y modificatorias, Código Civil y Comercial de la Nación).
 
@@ -43,8 +39,7 @@ LOCADOR: ${locador_nombre}, DNI/CUIT: ${locador_dni}, Estado civil: ${locador_es
 
 LOCATARIO: ${locatario_nombre}, DNI/CUIT: ${locatario_dni}, Estado civil: ${locatario_estado_civil}, Email: ${locatario_email}
 
-GARANTE: ${garante_nombre}, DNI: ${garante_dni}, Domicilio: ${garante_domicilio}, Email: ${garante_email}
-Tipo de garantía: ${garante_tipo}. ${detalleGarante}
+${garantesTexto}
 
 INMUEBLE: ${inmueble_tipo} ubicado en ${inmueble_direccion}${inmueble_piso_dpto ? `, ${inmueble_piso_dpto}` : ''}, CP: ${inmueble_cp}
 Destino: ${inmueble_destino}
