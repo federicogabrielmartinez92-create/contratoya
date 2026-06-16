@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import React, { useState, useEffect } from 'react';
 
 export const runtime = 'nodejs';
 
