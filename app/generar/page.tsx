@@ -152,14 +152,39 @@ export default function GenerarPage() {
       setContrato(data1.contrato);
 
       if (conFirma) {
-        const base64_pdf = generarPDFBase64(data1.contrato);
-        const f1 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locador_nombre,   email: formAlquiler.locador_email }   : { nombre: form.prestador, email: form.email_prestador };
-        const f2 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email } : { nombre: form.cliente,    email: form.email_cliente };
-        const res2  = await fetch('/api/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email }) });
-        const data2 = await res2.json();
-        if (data2.error) throw new Error(data2.error);
-        setLinks(data2.links ?? []);
-      }
+  const base64_pdf = generarPDFBase64(data1.contrato);
+  const f1 = tipoContrato === 'alquiler'
+    ? { nombre: formAlquiler.locador_nombre,   email: formAlquiler.locador_email }
+    : { nombre: form.prestador, email: form.email_prestador };
+  const f2 = tipoContrato === 'alquiler'
+    ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email }
+    : { nombre: form.cliente,  email: form.email_cliente };
+
+  const firmantes_extra = tipoContrato === 'alquiler'
+    ? garantes.filter(g => g.email).map(g => ({ nombre: g.nombre, email: g.email }))
+    : [];
+
+  const nombre_doc = tipoContrato === 'alquiler'
+    ? `Contrato de Alquiler - ${formAlquiler.locatario_nombre}`
+    : undefined;
+
+  const res2  = await fetch('/api/firmar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      base64_pdf,
+      prestador:       f1.nombre,
+      email_prestador: f1.email,
+      cliente:         f2.nombre,
+      email_cliente:   f2.email,
+      firmantes_extra,
+      nombre_doc,
+    }),
+  });
+  const data2 = await res2.json();
+  if (data2.error) throw new Error(data2.error);
+  setLinks(data2.links ?? []);
+}
 
       const ce = usuario.creditos_express ?? 0;
       if (usuario.plan === 'pro') {
