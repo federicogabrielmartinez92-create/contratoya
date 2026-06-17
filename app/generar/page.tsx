@@ -230,6 +230,11 @@ export default function GenerarPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>Plan {planLabel}</span>
           {usuario?.plan !== 'pro' && !hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario?.contratos_usados}/1 contratos</span>}
+          {usuario?.plan !== 'pro' && (
+  <a href="/precios" style={{ fontSize: '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 12px', borderRadius: '100px', textDecoration: 'none' }}>
+    Mejorar plan →
+  </a>
+)}
           {hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{creditosExpress} contrato Express disponible</span>}
           {usuario?.plan === 'pro' && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario.contratos_mes}/15 este mes</span>}
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
