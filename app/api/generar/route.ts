@@ -14,28 +14,32 @@ export async function POST(request: NextRequest) {
 
     if (tipo === 'alquiler') {
       const {
-        locador_nombre, locador_dni, locador_estado_civil, locador_domicilio, locador_email,
+        locadores = [],
+        garantes  = [],
         locatario_nombre, locatario_dni, locatario_estado_civil, locatario_email,
-        garantes = [],
         inmueble_tipo, inmueble_direccion, inmueble_piso_dpto, inmueble_cp,
-       inmueble_destino, inmueble_estado,
-       fecha_inicio, duracion_meses,
+        inmueble_destino, inmueble_estado,
+        fecha_inicio, duracion_meses,
         monto_alquiler, moneda_alquiler, indice, periodicidad, dias_desde, dias_hasta, metodo_pago,
-       monto_deposito, moneda_deposito,
-       servicios_obs, preaviso, jurisdiccion,
+        monto_deposito, moneda_deposito,
+        servicios_obs, preaviso, jurisdiccion,
       } = body;
+
+      const locadoresTexto = locadores.map((l: Record<string, string>, idx: number) =>
+        `LOCADOR${locadores.length > 1 ? ` ${idx + 1}` : ''}: ${l.nombre}, DNI/CUIT: ${l.dni}, Estado civil: ${l.estado_civil}, Domicilio: ${l.domicilio}, Email: ${l.email}`
+      ).join('\n');
 
       const garantesTexto = garantes.map((g: Record<string, string>, idx: number) => {
         let detalle = '';
         if (g.tipo === 'Propietaria')       detalle = `Garantía propietaria. Matrícula: ${g.matricula}, Registro: ${g.registro}, Ubicación: ${g.ciudad_prop}, ${g.provincia_prop}.`;
         if (g.tipo === 'Recibo de Sueldo')  detalle = `Garantía por recibo de sueldo. Empresa: ${g.empresa}, Cargo: ${g.cargo}.`;
-       if (g.tipo === 'Seguro de Caución') detalle = `Garantía por seguro de caución. Aseguradora: ${g.aseguradora}, Póliza N°: ${g.poliza}.`;
-       return `GARANTE ${idx + 1}: ${g.nombre}, DNI: ${g.dni}, Domicilio: ${g.domicilio}, Email: ${g.email}\nTipo: ${g.tipo}. ${detalle}`;
+        if (g.tipo === 'Seguro de Caución') detalle = `Garantía por seguro de caución. Aseguradora: ${g.aseguradora}, Póliza N°: ${g.poliza}.`;
+        return `GARANTE ${idx + 1}: ${g.nombre}, DNI: ${g.dni}, Domicilio: ${g.domicilio}, Email: ${g.email}\nTipo: ${g.tipo}. ${detalle}`;
       }).join('\n\n');
 
       prompt = `Generá un contrato de locación (alquiler) completo y formal conforme a la legislación argentina vigente (Ley 27.551 y modificatorias, Código Civil y Comercial de la Nación).
 
-LOCADOR: ${locador_nombre}, DNI/CUIT: ${locador_dni}, Estado civil: ${locador_estado_civil}, Domicilio: ${locador_domicilio}, Email: ${locador_email}
+${locadoresTexto}
 
 LOCATARIO: ${locatario_nombre}, DNI/CUIT: ${locatario_dni}, Estado civil: ${locatario_estado_civil}, Email: ${locatario_email}
 
@@ -63,13 +67,12 @@ JURISDICCION: ${jurisdiccion}
 
 INSTRUCCIONES:
 - Español formal legal argentino
-- Incluir obligatoriamente: objeto y destino, plazo y renovación, precio y actualización (cláusula ICL/índice detallada), depósito y condiciones de devolución, servicios e impuestos, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada y preaviso, mora, jurisdicción y competencia
-- Espacios para firmas de locador, locatario y garante al final
+- Incluir obligatoriamente: objeto y destino, plazo y renovación, precio y actualización (cláusula índice detallada), depósito y condiciones de devolución, servicios e impuestos, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada y preaviso, mora, jurisdicción y competencia
+- Espacios para firmas de todos los locadores, locatario y garantes al final
 - Sin markdown: sin asteriscos, sin ##, sin ---. Títulos en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
 - Solo el texto del contrato, sin comentarios adicionales`;
 
     } else {
-      // ── Contrato de servicios (lógica original) ──────────────
       const { prestador, cuit_prestador, cliente, cuit_cliente, servicio, monto, moneda, plazo, ciudad, fecha, condiciones_pago } = body;
 
       prompt = `Generá un contrato profesional de prestación de servicios para freelancer argentino.

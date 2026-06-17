@@ -22,10 +22,18 @@ const campos = [
   { name: 'fecha',          label: 'Fecha',                  placeholder: 'Ej: 10/06/2026',                 span: 1 },
 ];
 
+type LocadorData = {
+  nombre: string; dni: string; estado_civil: string; domicilio: string; email: string;
+};
+
 type GaranteData = {
   tipo: string; nombre: string; dni: string; domicilio: string; email: string;
   matricula: string; registro: string; ciudad_prop: string; provincia_prop: string;
   empresa: string; cargo: string; aseguradora: string; poliza: string;
+};
+
+const initialLocador: LocadorData = {
+  nombre: '', dni: '', estado_civil: 'Soltero/a', domicilio: '', email: '',
 };
 
 const initialGarante: GaranteData = {
@@ -35,7 +43,6 @@ const initialGarante: GaranteData = {
 };
 
 const initialFormAlquiler: Record<string, string> = {
-  locador_nombre: '', locador_dni: '', locador_estado_civil: 'Soltero/a', locador_domicilio: '', locador_email: '',
   locatario_nombre: '', locatario_dni: '', locatario_estado_civil: 'Soltero/a', locatario_email: '',
   inmueble_tipo: 'Departamento', inmueble_direccion: '', inmueble_piso_dpto: '',
   inmueble_cp: '', inmueble_destino: 'Vivienda familiar', inmueble_estado: '',
@@ -56,24 +63,25 @@ interface Usuario {
 
 export default function GenerarPage() {
   const router = useRouter();
-  const [usuario, setUsuario]           = useState<Usuario | null>(null);
-  const [cargando, setCargando]         = useState(true);
-  const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
-  const [form, setForm]                 = useState<Record<string, string>>({
+  const [usuario, setUsuario]             = useState<Usuario | null>(null);
+  const [cargando, setCargando]           = useState(true);
+  const [tipoContrato, setTipoContrato]   = useState<'servicios' | 'alquiler'>('servicios');
+  const [form, setForm]                   = useState<Record<string, string>>({
     prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
     servicio: '', monto: '', plazo: '', ciudad: '',
     fecha: new Date().toLocaleDateString('es-AR'),
     condiciones_pago: '50% adelanto / 50% al entregar',
     moneda: 'ARS', email_prestador: '', email_cliente: '',
   });
-  const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
-  const [garantes, setGarantes]         = useState<GaranteData[]>([{ ...initialGarante }]);
-  const [conFirma, setConFirma]         = useState(false);
-  const [contrato, setContrato]         = useState('');
-  const [links, setLinks]               = useState<{ nombre: string; url: string }[]>([]);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState('');
-  const [tiempo, setTiempo]             = useState(0);
+  const [formAlquiler, setFormAlquiler]   = useState<Record<string, string>>(initialFormAlquiler);
+  const [locadores, setLocadores]         = useState<LocadorData[]>([{ ...initialLocador }]);
+  const [garantes, setGarantes]           = useState<GaranteData[]>([{ ...initialGarante }]);
+  const [conFirma, setConFirma]           = useState(false);
+  const [contrato, setContrato]           = useState('');
+  const [links, setLinks]                 = useState<{ nombre: string; url: string }[]>([]);
+  const [loading, setLoading]             = useState(false);
+  const [error, setError]                 = useState('');
+  const [tiempo, setTiempo]               = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -92,9 +100,12 @@ export default function GenerarPage() {
     init();
   }, [router]);
 
-  const handleLogout        = async () => { await supabase.auth.signOut(); router.push('/'); };
-  const handleChange        = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleLogout         = async () => { await supabase.auth.signOut(); router.push('/'); };
+  const handleChange         = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
   const handleChangeAlquiler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
+  const handleChangeLocador  = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setLocadores(locadores.map((l, i) => i === idx ? { ...l, [e.target.name]: e.target.value } : l));
+  const agregarLocador       = () => setLocadores([...locadores, { ...initialLocador }]);
+  const removerLocador       = (idx: number) => setLocadores(locadores.filter((_, i) => i !== idx));
   const handleChangeGarante  = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setGarantes(garantes.map((g, i) => i === idx ? { ...g, [e.target.name]: e.target.value } : g));
   const agregarGarante       = () => setGarantes([...garantes, { ...initialGarante }]);
   const removerGarante       = (idx: number) => setGarantes(garantes.filter((_, i) => i !== idx));
@@ -134,8 +145,8 @@ export default function GenerarPage() {
       if (!form.prestador || !form.cliente || !form.servicio || !form.monto || !form.cuit_prestador) { setError('Completá los campos obligatorios (*)'); return; }
       if (conFirma && (!form.email_prestador || !form.email_cliente)) { setError('Para la firma digital necesitás ingresar ambos emails'); return; }
     } else {
-      if (!formAlquiler.locador_nombre || !formAlquiler.locatario_nombre || !formAlquiler.inmueble_direccion || !formAlquiler.monto_alquiler) { setError('Completá los campos obligatorios (*)'); return; }
-      if (conFirma && (!formAlquiler.locador_email || !formAlquiler.locatario_email)) { setError('Para la firma digital necesitás los emails del locador y locatario'); return; }
+      if (!locadores[0].nombre || !formAlquiler.locatario_nombre || !formAlquiler.inmueble_direccion || !formAlquiler.monto_alquiler) { setError('Completá los campos obligatorios (*)'); return; }
+      if (conFirma && (!locadores[0].email || !formAlquiler.locatario_email)) { setError('Para la firma digital necesitás los emails del locador y locatario'); return; }
     }
 
     setLoading(true); setError('');
@@ -143,7 +154,7 @@ export default function GenerarPage() {
 
     try {
       const payload = tipoContrato === 'alquiler'
-        ? { tipo: 'alquiler', ...formAlquiler, garantes }
+        ? { tipo: 'alquiler', ...formAlquiler, locadores, garantes }
         : { tipo: 'servicios', ...form };
 
       const res1  = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -152,39 +163,33 @@ export default function GenerarPage() {
       setContrato(data1.contrato);
 
       if (conFirma) {
-  const base64_pdf = generarPDFBase64(data1.contrato);
-  const f1 = tipoContrato === 'alquiler'
-    ? { nombre: formAlquiler.locador_nombre,   email: formAlquiler.locador_email }
-    : { nombre: form.prestador, email: form.email_prestador };
-  const f2 = tipoContrato === 'alquiler'
-    ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email }
-    : { nombre: form.cliente,  email: form.email_cliente };
+        const base64_pdf = generarPDFBase64(data1.contrato);
 
-  const firmantes_extra = tipoContrato === 'alquiler'
-    ? garantes.filter(g => g.email).map(g => ({ nombre: g.nombre, email: g.email }))
-    : [];
+        const f1 = tipoContrato === 'alquiler'
+          ? { nombre: locadores[0].nombre, email: locadores[0].email }
+          : { nombre: form.prestador, email: form.email_prestador };
+        const f2 = tipoContrato === 'alquiler'
+          ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email }
+          : { nombre: form.cliente, email: form.email_cliente };
 
-  const nombre_doc = tipoContrato === 'alquiler'
-    ? `Contrato de Alquiler - ${formAlquiler.locatario_nombre}`
-    : undefined;
+        // Co-locadores (desde el 2do) + garantes como firmantes extra
+        const firmantes_extra = tipoContrato === 'alquiler' ? [
+          ...locadores.slice(1).filter(l => l.email).map(l => ({ nombre: l.nombre, email: l.email })),
+          ...garantes.filter(g => g.email).map(g => ({ nombre: g.nombre, email: g.email })),
+        ] : [];
 
-  const res2  = await fetch('/api/firmar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      base64_pdf,
-      prestador:       f1.nombre,
-      email_prestador: f1.email,
-      cliente:         f2.nombre,
-      email_cliente:   f2.email,
-      firmantes_extra,
-      nombre_doc,
-    }),
-  });
-  const data2 = await res2.json();
-  if (data2.error) throw new Error(data2.error);
-  setLinks(data2.links ?? []);
-}
+        const nombre_doc = tipoContrato === 'alquiler'
+          ? `Contrato de Alquiler - ${formAlquiler.locatario_nombre}`
+          : undefined;
+
+        const res2  = await fetch('/api/firmar', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email, firmantes_extra, nombre_doc }),
+        });
+        const data2 = await res2.json();
+        if (data2.error) throw new Error(data2.error);
+        setLinks(data2.links ?? []);
+      }
 
       const ce = usuario.creditos_express ?? 0;
       if (usuario.plan === 'pro') {
@@ -230,13 +235,13 @@ export default function GenerarPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>Plan {planLabel}</span>
           {usuario?.plan !== 'pro' && !hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario?.contratos_usados}/1 contratos</span>}
-          {usuario?.plan !== 'pro' && (
-  <a href="/precios" style={{ fontSize: '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 12px', borderRadius: '100px', textDecoration: 'none' }}>
-    Mejorar plan →
-  </a>
-)}
           {hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{creditosExpress} contrato Express disponible</span>}
           {usuario?.plan === 'pro' && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario.contratos_mes}/15 este mes</span>}
+          {usuario?.plan !== 'pro' && (
+            <a href="/precios" style={{ fontSize: '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 12px', borderRadius: '100px', textDecoration: 'none' }}>
+              Mejorar plan →
+            </a>
+          )}
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
           <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
         </div>
@@ -317,13 +322,38 @@ export default function GenerarPage() {
             {tipoContrato === 'alquiler' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
-                {/* Locador */}
-                <div style={sec}>Locador (Propietario)</div>
-                <div><label style={lbl}>Nombre completo *</label><input name="locador_nombre" value={formAlquiler.locador_nombre} onChange={handleChangeAlquiler} placeholder="Ej: Juan Pérez" style={inp} /></div>
-                <div><label style={lbl}>DNI / CUIT *</label><input name="locador_dni" value={formAlquiler.locador_dni} onChange={handleChangeAlquiler} placeholder="Ej: 20-12345678-9" style={inp} /></div>
-                <div><label style={lbl}>Estado civil</label><select name="locador_estado_civil" value={formAlquiler.locador_estado_civil} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>{estadosCiviles.map(e => <option key={e}>{e}</option>)}</select></div>
-                <div><label style={lbl}>Email</label><input name="locador_email" value={formAlquiler.locador_email} onChange={handleChangeAlquiler} type="email" placeholder="locador@email.com" style={inp} /></div>
-                <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio real</label><input name="locador_domicilio" value={formAlquiler.locador_domicilio} onChange={handleChangeAlquiler} placeholder="Ej: Corrientes 1234, Rosario" style={inp} /></div>
+                {/* Locadores */}
+                <div style={sec}>Locador{locadores.length > 1 ? 'es' : ''} (Propietario{locadores.length > 1 ? 's' : ''})</div>
+
+                {locadores.map((locador, idx) => (
+                  <React.Fragment key={idx}>
+                    {locadores.length > 1 && (
+                      <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F9FAFB', borderRadius: '8px', padding: '8px 12px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Locador {idx + 1}</span>
+                        {idx > 0 && (
+                          <button onClick={() => removerLocador(idx)}
+                            style={{ fontSize: '12px', color: '#DC2626', background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+                            − Eliminar
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div><label style={lbl}>Nombre completo {idx === 0 ? '*' : ''}</label><input name="nombre" value={locador.nombre} onChange={(e) => handleChangeLocador(idx, e)} placeholder="Ej: Juan Pérez" style={inp} /></div>
+                    <div><label style={lbl}>DNI / CUIT {idx === 0 ? '*' : ''}</label><input name="dni" value={locador.dni} onChange={(e) => handleChangeLocador(idx, e)} placeholder="Ej: 20-12345678-9" style={inp} /></div>
+                    <div><label style={lbl}>Estado civil</label><select name="estado_civil" value={locador.estado_civil} onChange={(e) => handleChangeLocador(idx, e)} style={{ ...inp, background: 'white' }}>{estadosCiviles.map(e => <option key={e}>{e}</option>)}</select></div>
+                    <div><label style={lbl}>Email</label><input name="email" value={locador.email} onChange={(e) => handleChangeLocador(idx, e)} type="email" placeholder="locador@email.com" style={inp} /></div>
+                    <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio real</label><input name="domicilio" value={locador.domicilio} onChange={(e) => handleChangeLocador(idx, e)} placeholder="Ej: Corrientes 1234, Rosario" style={inp} /></div>
+                  </React.Fragment>
+                ))}
+
+                {locadores.length < 3 && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <button onClick={agregarLocador}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #F5A623', background: '#FFFBF0', color: '#92400E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                      + Agregar otro locador
+                    </button>
+                  </div>
+                )}
 
                 {/* Locatario */}
                 <div style={sec}>Locatario (Inquilino)</div>
@@ -425,31 +455,28 @@ export default function GenerarPage() {
                 <div><label style={lbl}>Preaviso de rescisión</label><select name="preaviso" value={formAlquiler.preaviso} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}><option>30 días</option><option>60 días</option></select></div>
                 <div><label style={lbl}>Jurisdicción</label><input name="jurisdiccion" value={formAlquiler.jurisdiccion} onChange={handleChangeAlquiler} placeholder="Ej: Tribunales Provinciales de Rosario" style={inp} /></div>
 
+                {/* Firma */}
                 {conFirma && (
-  <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
-    <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>
-      ✓ Locador, locatario{garantes.some(g => g.email) ? ' y garantes' : ''} recibirán un email para firmar digitalmente.
-    </p>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-      <div><label style={lbl}>Email del locador *</label><input name="locador_email" value={formAlquiler.locador_email} onChange={handleChangeAlquiler} type="email" placeholder="locador@email.com" style={inp} /></div>
-      <div><label style={lbl}>Email del locatario *</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
-    </div>
-
-    {garantes.some(g => g.email) && (
-      <div style={{ marginTop: '12px', padding: '10px 12px', background: '#DCFCE7', borderRadius: '8px' }}>
-        <p style={{ fontSize: '12px', color: '#15803D', margin: '0 0 6px', fontWeight: 600 }}>Garantes que firmarán:</p>
-        {garantes.filter(g => g.email).map((g, i) => (
-          <p key={i} style={{ fontSize: '12px', color: '#166534', margin: '2px 0' }}>
-            ✓ {g.nombre || `Garante ${i + 1}`} — {g.email}
-          </p>
-        ))}
-        <p style={{ fontSize: '11px', color: '#15803D', margin: '6px 0 0', opacity: 0.7 }}>
-          Garantes sin email no recibirán el link de firma.
-        </p>
-      </div>
-    )}
-  </div>
-)}
+                  <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
+                    <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>
+                      ✓ Locador{locadores.length > 1 ? 'es' : ''}, locatario{garantes.some(g => g.email) ? ' y garantes' : ''} recibirán un email para firmar digitalmente.
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {locadores.map((l, i) => (
+                        <div key={i}><label style={lbl}>Email del locador {locadores.length > 1 ? i + 1 : ''} {i === 0 ? '*' : ''}</label><input name="email" value={l.email} onChange={(e) => handleChangeLocador(i, e)} type="email" placeholder="locador@email.com" style={inp} /></div>
+                      ))}
+                      <div><label style={lbl}>Email del locatario *</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
+                    </div>
+                    {garantes.some(g => g.email) && (
+                      <div style={{ marginTop: '12px', padding: '10px 12px', background: '#DCFCE7', borderRadius: '8px' }}>
+                        <p style={{ fontSize: '12px', color: '#15803D', margin: '0 0 6px', fontWeight: 600 }}>Garantes que firmarán:</p>
+                        {garantes.filter(g => g.email).map((g, i) => (
+                          <p key={i} style={{ fontSize: '12px', color: '#166534', margin: '2px 0' }}>✓ {g.nombre || `Garante ${i + 1}`} — {g.email}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
