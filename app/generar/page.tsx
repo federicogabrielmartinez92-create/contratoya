@@ -421,14 +421,30 @@ export default function GenerarPage() {
                 <div><label style={lbl}>Jurisdicción</label><input name="jurisdiccion" value={formAlquiler.jurisdiccion} onChange={handleChangeAlquiler} placeholder="Ej: Tribunales Provinciales de Rosario" style={inp} /></div>
 
                 {conFirma && (
-                  <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
-                    <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Locador y locatario recibirán un email para firmar digitalmente.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div><label style={lbl}>Email del locador *</label><input name="locador_email" value={formAlquiler.locador_email} onChange={handleChangeAlquiler} type="email" placeholder="locador@email.com" style={inp} /></div>
-                      <div><label style={lbl}>Email del locatario *</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
-                    </div>
-                  </div>
-                )}
+  <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
+    <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>
+      ✓ Locador, locatario{garantes.some(g => g.email) ? ' y garantes' : ''} recibirán un email para firmar digitalmente.
+    </p>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div><label style={lbl}>Email del locador *</label><input name="locador_email" value={formAlquiler.locador_email} onChange={handleChangeAlquiler} type="email" placeholder="locador@email.com" style={inp} /></div>
+      <div><label style={lbl}>Email del locatario *</label><input name="locatario_email" value={formAlquiler.locatario_email} onChange={handleChangeAlquiler} type="email" placeholder="inquilino@email.com" style={inp} /></div>
+    </div>
+
+    {garantes.some(g => g.email) && (
+      <div style={{ marginTop: '12px', padding: '10px 12px', background: '#DCFCE7', borderRadius: '8px' }}>
+        <p style={{ fontSize: '12px', color: '#15803D', margin: '0 0 6px', fontWeight: 600 }}>Garantes que firmarán:</p>
+        {garantes.filter(g => g.email).map((g, i) => (
+          <p key={i} style={{ fontSize: '12px', color: '#166534', margin: '2px 0' }}>
+            ✓ {g.nombre || `Garante ${i + 1}`} — {g.email}
+          </p>
+        ))}
+        <p style={{ fontSize: '11px', color: '#15803D', margin: '6px 0 0', opacity: 0.7 }}>
+          Garantes sin email no recibirán el link de firma.
+        </p>
+      </div>
+    )}
+  </div>
+)}
               </div>
             )}
 
