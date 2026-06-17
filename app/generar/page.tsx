@@ -22,6 +22,17 @@ const campos = [
   { name: 'fecha',          label: 'Fecha',                  placeholder: 'Ej: 10/06/2026',                 span: 1 },
 ];
 
+const serviciosItems = [
+  { name: 'servicio_luz',             label: 'Electricidad',             default: 'Locatario' },
+  { name: 'servicio_gas',             label: 'Gas',                      default: 'Locatario' },
+  { name: 'servicio_agua',            label: 'Agua',                     default: 'Locatario' },
+  { name: 'servicio_internet',        label: 'Internet / Cable',         default: 'Locatario' },
+  { name: 'expensas_ordinarias',      label: 'Expensas ordinarias',      default: 'Locatario' },
+  { name: 'expensas_extraordinarias', label: 'Expensas extraordinarias', default: 'Locador'   },
+  { name: 'impuesto_inmobiliario',    label: 'Impuesto inmobiliario',    default: 'Locador'   },
+  { name: 'tasa_municipal',           label: 'Tasa municipal (TGI)',     default: 'Locador'   },
+];
+
 type LocadorData = {
   nombre: string; dni: string; estado_civil: string; domicilio: string; email: string;
 };
@@ -42,6 +53,8 @@ const initialGarante: GaranteData = {
   empresa: '', cargo: '', aseguradora: '', poliza: '',
 };
 
+const serviciosDefaults = Object.fromEntries(serviciosItems.map(s => [s.name, s.default]));
+
 const initialFormAlquiler: Record<string, string> = {
   locatario_nombre: '', locatario_dni: '', locatario_estado_civil: 'Soltero/a', locatario_email: '',
   inmueble_tipo: 'Departamento', inmueble_direccion: '', inmueble_piso_dpto: '',
@@ -52,7 +65,8 @@ const initialFormAlquiler: Record<string, string> = {
   indice: 'ICL', periodicidad: 'Cuatrimestral',
   dias_desde: '1', dias_hasta: '10', metodo_pago: 'Transferencia bancaria',
   monto_deposito: '', moneda_deposito: 'ARS',
-  servicios_obs: 'El locatario abona servicios (luz, gas, agua, internet) y expensas ordinarias. El locador abona impuesto inmobiliario y expensas extraordinarias.',
+  ...serviciosDefaults,
+  mora_tipo: 'Porcentaje mensual', mora_porcentaje: '5', mora_dias_gracia: '5',
   preaviso: '60 días', jurisdiccion: 'Tribunales Provinciales de Rosario',
 };
 
@@ -63,25 +77,25 @@ interface Usuario {
 
 export default function GenerarPage() {
   const router = useRouter();
-  const [usuario, setUsuario]             = useState<Usuario | null>(null);
-  const [cargando, setCargando]           = useState(true);
-  const [tipoContrato, setTipoContrato]   = useState<'servicios' | 'alquiler'>('servicios');
-  const [form, setForm]                   = useState<Record<string, string>>({
+  const [usuario, setUsuario]           = useState<Usuario | null>(null);
+  const [cargando, setCargando]         = useState(true);
+  const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
+  const [form, setForm]                 = useState<Record<string, string>>({
     prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
     servicio: '', monto: '', plazo: '', ciudad: '',
     fecha: new Date().toLocaleDateString('es-AR'),
     condiciones_pago: '50% adelanto / 50% al entregar',
     moneda: 'ARS', email_prestador: '', email_cliente: '',
   });
-  const [formAlquiler, setFormAlquiler]   = useState<Record<string, string>>(initialFormAlquiler);
-  const [locadores, setLocadores]         = useState<LocadorData[]>([{ ...initialLocador }]);
-  const [garantes, setGarantes]           = useState<GaranteData[]>([{ ...initialGarante }]);
-  const [conFirma, setConFirma]           = useState(false);
-  const [contrato, setContrato]           = useState('');
-  const [links, setLinks]                 = useState<{ nombre: string; url: string }[]>([]);
-  const [loading, setLoading]             = useState(false);
-  const [error, setError]                 = useState('');
-  const [tiempo, setTiempo]               = useState(0);
+  const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
+  const [locadores, setLocadores]       = useState<LocadorData[]>([{ ...initialLocador }]);
+  const [garantes, setGarantes]         = useState<GaranteData[]>([{ ...initialGarante }]);
+  const [conFirma, setConFirma]         = useState(false);
+  const [contrato, setContrato]         = useState('');
+  const [links, setLinks]               = useState<{ nombre: string; url: string }[]>([]);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [tiempo, setTiempo]             = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -100,15 +114,15 @@ export default function GenerarPage() {
     init();
   }, [router]);
 
-  const handleLogout         = async () => { await supabase.auth.signOut(); router.push('/'); };
-  const handleChange         = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleChangeAlquiler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
-  const handleChangeLocador  = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setLocadores(locadores.map((l, i) => i === idx ? { ...l, [e.target.name]: e.target.value } : l));
-  const agregarLocador       = () => setLocadores([...locadores, { ...initialLocador }]);
-  const removerLocador       = (idx: number) => setLocadores(locadores.filter((_, i) => i !== idx));
-  const handleChangeGarante  = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setGarantes(garantes.map((g, i) => i === idx ? { ...g, [e.target.name]: e.target.value } : g));
-  const agregarGarante       = () => setGarantes([...garantes, { ...initialGarante }]);
-  const removerGarante       = (idx: number) => setGarantes(garantes.filter((_, i) => i !== idx));
+  const handleLogout          = async () => { await supabase.auth.signOut(); router.push('/'); };
+  const handleChange          = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChangeAlquiler  = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
+  const handleChangeLocador   = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setLocadores(locadores.map((l, i) => i === idx ? { ...l, [e.target.name]: e.target.value } : l));
+  const agregarLocador        = () => setLocadores([...locadores, { ...initialLocador }]);
+  const removerLocador        = (idx: number) => setLocadores(locadores.filter((_, i) => i !== idx));
+  const handleChangeGarante   = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setGarantes(garantes.map((g, i) => i === idx ? { ...g, [e.target.name]: e.target.value } : g));
+  const agregarGarante        = () => setGarantes([...garantes, { ...initialGarante }]);
+  const removerGarante        = (idx: number) => setGarantes(garantes.filter((_, i) => i !== idx));
 
   const crearPDF = (texto: string) => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -131,7 +145,6 @@ export default function GenerarPage() {
   const handleGenerar = async () => {
     if (!usuario) return;
     const creditosExpress = usuario.creditos_express ?? 0;
-
     if (usuario.plan === 'pro') {
       if (usuario.contratos_mes >= 15) { setError('Llegaste al límite de 15 contratos del plan Pro este mes.'); return; }
     } else if (creditosExpress > 0) {
@@ -163,29 +176,15 @@ export default function GenerarPage() {
       setContrato(data1.contrato);
 
       if (conFirma) {
-        const base64_pdf = generarPDFBase64(data1.contrato);
-
-        const f1 = tipoContrato === 'alquiler'
-          ? { nombre: locadores[0].nombre, email: locadores[0].email }
-          : { nombre: form.prestador, email: form.email_prestador };
-        const f2 = tipoContrato === 'alquiler'
-          ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email }
-          : { nombre: form.cliente, email: form.email_cliente };
-
-        // Co-locadores (desde el 2do) + garantes como firmantes extra
+        const base64_pdf   = generarPDFBase64(data1.contrato);
+        const f1 = tipoContrato === 'alquiler' ? { nombre: locadores[0].nombre, email: locadores[0].email } : { nombre: form.prestador, email: form.email_prestador };
+        const f2 = tipoContrato === 'alquiler' ? { nombre: formAlquiler.locatario_nombre, email: formAlquiler.locatario_email } : { nombre: form.cliente, email: form.email_cliente };
         const firmantes_extra = tipoContrato === 'alquiler' ? [
           ...locadores.slice(1).filter(l => l.email).map(l => ({ nombre: l.nombre, email: l.email })),
           ...garantes.filter(g => g.email).map(g => ({ nombre: g.nombre, email: g.email })),
         ] : [];
-
-        const nombre_doc = tipoContrato === 'alquiler'
-          ? `Contrato de Alquiler - ${formAlquiler.locatario_nombre}`
-          : undefined;
-
-        const res2  = await fetch('/api/firmar', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email, firmantes_extra, nombre_doc }),
-        });
+        const nombre_doc = tipoContrato === 'alquiler' ? `Contrato de Alquiler - ${formAlquiler.locatario_nombre}` : undefined;
+        const res2  = await fetch('/api/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email, firmantes_extra, nombre_doc }) });
         const data2 = await res2.json();
         if (data2.error) throw new Error(data2.error);
         setLinks(data2.links ?? []);
@@ -223,6 +222,7 @@ export default function GenerarPage() {
   const planLabel   = usuario?.plan === 'pro' ? 'Pro'     : hasExpressCredit ? 'Express' : 'Gratis';
   const canGenerate = usuario?.plan === 'pro' || hasExpressCredit || (usuario?.contratos_usados ?? 0) < 1;
   const estadosCiviles = ['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Unión convivencial'];
+  const responsables   = ['Locatario', 'Locador', 'A cargo de ambos', 'No aplica'];
 
   return (
     <main style={{ minHeight: '100vh', background: '#F8F9FB', fontFamily: 'Inter, sans-serif' }}>
@@ -264,7 +264,7 @@ export default function GenerarPage() {
         {!contrato ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '40px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
 
-            {/* Selector tipo contrato */}
+            {/* Selector tipo */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
               {[{ val: 'servicios', label: '💼  Servicios / Freelance' }, { val: 'alquiler', label: '🏠  Contrato de Alquiler' }].map(opt => (
                 <button key={opt.val} onClick={() => { setTipoContrato(opt.val as 'servicios' | 'alquiler'); setError(''); }}
@@ -324,18 +324,12 @@ export default function GenerarPage() {
 
                 {/* Locadores */}
                 <div style={sec}>Locador{locadores.length > 1 ? 'es' : ''} (Propietario{locadores.length > 1 ? 's' : ''})</div>
-
                 {locadores.map((locador, idx) => (
                   <React.Fragment key={idx}>
                     {locadores.length > 1 && (
                       <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F9FAFB', borderRadius: '8px', padding: '8px 12px' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Locador {idx + 1}</span>
-                        {idx > 0 && (
-                          <button onClick={() => removerLocador(idx)}
-                            style={{ fontSize: '12px', color: '#DC2626', background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-                            − Eliminar
-                          </button>
-                        )}
+                        {idx > 0 && <button onClick={() => removerLocador(idx)} style={{ fontSize: '12px', color: '#DC2626', background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>− Eliminar</button>}
                       </div>
                     )}
                     <div><label style={lbl}>Nombre completo {idx === 0 ? '*' : ''}</label><input name="nombre" value={locador.nombre} onChange={(e) => handleChangeLocador(idx, e)} placeholder="Ej: Juan Pérez" style={inp} /></div>
@@ -345,11 +339,9 @@ export default function GenerarPage() {
                     <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Domicilio real</label><input name="domicilio" value={locador.domicilio} onChange={(e) => handleChangeLocador(idx, e)} placeholder="Ej: Corrientes 1234, Rosario" style={inp} /></div>
                   </React.Fragment>
                 ))}
-
                 {locadores.length < 3 && (
                   <div style={{ gridColumn: 'span 2' }}>
-                    <button onClick={agregarLocador}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #F5A623', background: '#FFFBF0', color: '#92400E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                    <button onClick={agregarLocador} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #F5A623', background: '#FFFBF0', color: '#92400E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
                       + Agregar otro locador
                     </button>
                   </div>
@@ -364,18 +356,12 @@ export default function GenerarPage() {
 
                 {/* Garantes */}
                 <div style={sec}>Garante{garantes.length > 1 ? 's' : ''}</div>
-
                 {garantes.map((garante, idx) => (
                   <React.Fragment key={idx}>
                     {garantes.length > 1 && (
                       <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F9FAFB', borderRadius: '8px', padding: '8px 12px' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>Garante {idx + 1}</span>
-                        {idx > 0 && (
-                          <button onClick={() => removerGarante(idx)}
-                            style={{ fontSize: '12px', color: '#DC2626', background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-                            − Eliminar
-                          </button>
-                        )}
+                        {idx > 0 && <button onClick={() => removerGarante(idx)} style={{ fontSize: '12px', color: '#DC2626', background: 'none', border: '1px solid #FCA5A5', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>− Eliminar</button>}
                       </div>
                     )}
                     <div style={{ gridColumn: 'span 2' }}>
@@ -404,11 +390,9 @@ export default function GenerarPage() {
                     </>)}
                   </React.Fragment>
                 ))}
-
                 {garantes.length < 3 && (
                   <div style={{ gridColumn: 'span 2' }}>
-                    <button onClick={agregarGarante}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #F5A623', background: '#FFFBF0', color: '#92400E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                    <button onClick={agregarGarante} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #F5A623', background: '#FFFBF0', color: '#92400E', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
                       + Agregar otro garante
                     </button>
                   </div>
@@ -443,11 +427,41 @@ export default function GenerarPage() {
                 <div><label style={lbl}>Monto del depósito</label><input name="monto_deposito" value={formAlquiler.monto_deposito} onChange={handleChangeAlquiler} placeholder="Ej: 250000" style={inp} /></div>
                 <div><label style={lbl}>Moneda del depósito</label><select name="moneda_deposito" value={formAlquiler.moneda_deposito} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div>
 
-                {/* Servicios */}
+                {/* Servicios e Impuestos */}
                 <div style={sec}>Servicios e Impuestos</div>
+                <div style={{ gridColumn: 'span 2', background: '#F9FAFB', borderRadius: '10px', padding: '4px 0', border: '1px solid #F3F4F6' }}>
+                  {serviciosItems.map((item, i) => (
+                    <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: i < serviciosItems.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>{item.label}</span>
+                      <select name={item.name} value={formAlquiler[item.name]} onChange={handleChangeAlquiler}
+                        style={{ padding: '6px 10px', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '13px', color: '#111827', background: 'white', cursor: 'pointer' }}>
+                        {responsables.map(r => <option key={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mora */}
+                <div style={sec}>Interés por Mora</div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={lbl}>¿Quién paga qué?</label>
-                  <textarea name="servicios_obs" value={formAlquiler.servicios_obs} onChange={handleChangeAlquiler} rows={3} style={{ ...inp, resize: 'vertical' }} />
+                  <label style={lbl}>Tipo de interés moratorio</label>
+                  <select name="mora_tipo" value={formAlquiler.mora_tipo} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>
+                    <option>Porcentaje mensual</option>
+                    <option>Tasa activa BNA</option>
+                    <option>Tasa pasiva BCRA</option>
+                  </select>
+                </div>
+                {formAlquiler.mora_tipo === 'Porcentaje mensual' && (
+                  <div>
+                    <label style={lbl}>Porcentaje mensual (%)</label>
+                    <input name="mora_porcentaje" value={formAlquiler.mora_porcentaje} onChange={handleChangeAlquiler} type="number" min="1" max="100" placeholder="Ej: 5" style={inp} />
+                  </div>
+                )}
+                <div>
+                  <label style={lbl}>Días de gracia antes de aplicar mora</label>
+                  <select name="mora_dias_gracia" value={formAlquiler.mora_dias_gracia} onChange={handleChangeAlquiler} style={{ ...inp, background: 'white' }}>
+                    {['0','3','5','7','10'].map(d => <option key={d}>{d} {d === '0' ? '(sin gracia)' : d === '1' ? 'día' : 'días'}</option>)}
+                  </select>
                 </div>
 
                 {/* Resolución */}

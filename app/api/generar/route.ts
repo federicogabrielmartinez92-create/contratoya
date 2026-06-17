@@ -14,15 +14,17 @@ export async function POST(request: NextRequest) {
 
     if (tipo === 'alquiler') {
       const {
-        locadores = [],
-        garantes  = [],
+        locadores = [], garantes = [],
         locatario_nombre, locatario_dni, locatario_estado_civil, locatario_email,
         inmueble_tipo, inmueble_direccion, inmueble_piso_dpto, inmueble_cp,
         inmueble_destino, inmueble_estado,
         fecha_inicio, duracion_meses,
         monto_alquiler, moneda_alquiler, indice, periodicidad, dias_desde, dias_hasta, metodo_pago,
         monto_deposito, moneda_deposito,
-        servicios_obs, preaviso, jurisdiccion,
+        servicio_luz, servicio_gas, servicio_agua, servicio_internet,
+        expensas_ordinarias, expensas_extraordinarias, impuesto_inmobiliario, tasa_municipal,
+        mora_tipo, mora_porcentaje, mora_dias_gracia,
+        preaviso, jurisdiccion,
       } = body;
 
       const locadoresTexto = locadores.map((l: Record<string, string>, idx: number) =>
@@ -36,6 +38,26 @@ export async function POST(request: NextRequest) {
         if (g.tipo === 'Seguro de Caución') detalle = `Garantía por seguro de caución. Aseguradora: ${g.aseguradora}, Póliza N°: ${g.poliza}.`;
         return `GARANTE ${idx + 1}: ${g.nombre}, DNI: ${g.dni}, Domicilio: ${g.domicilio}, Email: ${g.email}\nTipo: ${g.tipo}. ${detalle}`;
       }).join('\n\n');
+
+      const serviciosTexto = [
+        { label: 'Electricidad',              value: servicio_luz },
+        { label: 'Gas',                       value: servicio_gas },
+        { label: 'Agua',                      value: servicio_agua },
+        { label: 'Internet / Cable',          value: servicio_internet },
+        { label: 'Expensas ordinarias',       value: expensas_ordinarias },
+        { label: 'Expensas extraordinarias',  value: expensas_extraordinarias },
+        { label: 'Impuesto inmobiliario',     value: impuesto_inmobiliario },
+        { label: 'Tasa municipal (TGI)',      value: tasa_municipal },
+      ]
+        .filter(s => s.value !== 'No aplica')
+        .map(s => `- ${s.label}: a cargo del ${s.value}`)
+        .join('\n');
+
+      const diasGracia = parseInt(mora_dias_gracia ?? '5');
+      const diaInicio  = diasGracia === 0 ? '1' : `${diasGracia + 1}`;
+      const moraTexto  = mora_tipo === 'Porcentaje mensual'
+        ? `${mora_porcentaje}% mensual sobre el monto adeudado, desde el día ${diaInicio} de atraso`
+        : `${mora_tipo} sobre el monto adeudado, desde el día ${diaInicio} de atraso`;
 
       prompt = `Generá un contrato de locación (alquiler) completo y formal conforme a la legislación argentina vigente (Ley 27.551 y modificatorias, Código Civil y Comercial de la Nación).
 
@@ -59,7 +81,10 @@ CONDICIONES ECONÓMICAS:
 
 DEPOSITO EN GARANTIA: ${monto_deposito} ${moneda_deposito}
 
-SERVICIOS E IMPUESTOS: ${servicios_obs}
+SERVICIOS E IMPUESTOS:
+${serviciosTexto}
+
+MORA POR ATRASO EN EL PAGO: ${moraTexto}
 
 RESCISION: Preaviso de ${preaviso}
 
@@ -67,7 +92,7 @@ JURISDICCION: ${jurisdiccion}
 
 INSTRUCCIONES:
 - Español formal legal argentino
-- Incluir obligatoriamente: objeto y destino, plazo y renovación, precio y actualización (cláusula índice detallada), depósito y condiciones de devolución, servicios e impuestos, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada y preaviso, mora, jurisdicción y competencia
+- Incluir obligatoriamente: objeto y destino, plazo y renovación, precio y actualización (cláusula índice detallada), depósito y condiciones de devolución, distribución de servicios e impuestos según lo indicado, cláusula de mora con el interés indicado, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada y preaviso, jurisdicción y competencia
 - Espacios para firmas de todos los locadores, locatario y garantes al final
 - Sin markdown: sin asteriscos, sin ##, sin ---. Títulos en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
 - Solo el texto del contrato, sin comentarios adicionales`;
@@ -93,7 +118,7 @@ INSTRUCCIONES:
 - Incluir: objeto, honorarios y forma de pago (${condiciones_pago}), plazo, propiedad intelectual, confidencialidad, mora (2% mensual), rescisión, jurisdicción en ${ciudad || 'Buenos Aires'}
 - Espacios para firmas al final con nombre y aclaración
 - Solo el texto del contrato, sin comentarios adicionales
-- NO uses markdown: sin asteriscos, sin ##, sin ---. Títulos en MAYÚSCULAS.`;
+- NO uses markdown: sin asteriscos, sin ##, sin ##, sin ---. Títulos en MAYÚSCULAS.`;
     }
 
     const message = await client.messages.create({
