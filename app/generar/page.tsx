@@ -205,6 +205,22 @@ export default function GenerarPage() {
         await supabase.from('usuarios').update({ contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
         setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1 });
       }
+      // Guardar en tabla contratos
+const nombreContrato = tipoContrato === 'alquiler'
+  ? `Alquiler — ${formAlquiler.locatario_nombre}`
+  : `Servicios — ${form.cliente}`;
+
+await supabase.from('contratos').insert({
+  usuario_id: usuario.id,
+  tipo:       tipoContrato,
+  nombre:     nombreContrato,
+  prestador:  tipoContrato === 'servicios' ? form.prestador : locadores[0]?.nombre,
+  cliente:    tipoContrato === 'servicios' ? form.cliente   : formAlquiler.locatario_nombre,
+  monto:      tipoContrato === 'servicios' ? form.monto     : formAlquiler.monto_alquiler,
+  con_firma:  conFirma,
+  estado:     conFirma ? 'enviado' : 'generado',
+});
+
       setTiempo(Math.round((Date.now() - inicio) / 1000));
     } catch { setError('Hubo un error al generar el contrato. Intentá de nuevo.'); }
     finally { setLoading(false); }
@@ -246,6 +262,9 @@ export default function GenerarPage() {
               Mejorar plan →
             </a>
           )}
+          <a href="/dashboard" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+            Mis contratos
+          </a>
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
           <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
         </div>
