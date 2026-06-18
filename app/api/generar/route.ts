@@ -98,28 +98,52 @@ INSTRUCCIONES:
 - Solo el texto del contrato, sin comentarios adicionales`;
 
     } else {
-      const { prestador, cuit_prestador, cliente, cuit_cliente, servicio, monto, moneda, plazo, ciudad, fecha, condiciones_pago } = body;
+      const {
+  prestador, cuit_prestador, cliente, cuit_cliente,
+  representante_cliente, cargo_representante,
+  servicio, monto, moneda, plazo, ciudad, fecha,
+  condiciones_pago, revisiones,
+} = body;
 
-      prompt = `Generá un contrato profesional de prestación de servicios para freelancer argentino.
+const clienteInfo = representante_cliente
+  ? `${cliente}${cuit_cliente ? ` (CUIT: ${cuit_cliente})` : ''}, representado por ${representante_cliente}${cargo_representante ? `, ${cargo_representante}` : ''}`
+  : `${cliente}${cuit_cliente ? ` (CUIT: ${cuit_cliente})` : ''}`;
+
+prompt = `Generá un contrato profesional de prestación de servicios para freelancer argentino, conforme al Código Civil y Comercial de la Nación.
 
 DATOS:
 - Prestador: ${prestador} (CUIT: ${cuit_prestador})
-- Cliente: ${cliente} (CUIT: ${cuit_cliente})
+- Cliente: ${clienteInfo}
 - Servicio: ${servicio}
 - Monto: ${monto} ${moneda}
-- Plazo de entrega: ${plazo}
-- Ciudad: ${ciudad || 'Buenos Aires'}
-- Fecha: ${fecha}
 - Condiciones de pago: ${condiciones_pago}
+- Plazo de entrega: ${plazo || 'A acordar entre las partes'}
+- Rondas de revisión incluidas: ${revisiones || '2'}
+- Ciudad: ${ciudad || 'Rosario'}
+- Fecha: ${fecha}
 
-INSTRUCCIONES:
+INSTRUCCIONES - Incluí OBLIGATORIAMENTE estas cláusulas:
+
+1. IDENTIFICACIÓN DE PARTES: Si el cliente tiene representante legal, identificarlo con nombre y cargo. Dejar espacios para firma con nombre, aclaración y cargo de cada parte.
+
+2. OBJETO Y ALCANCE DEL SERVICIO: Describir el servicio. Establecer explícitamente que el precio base incluye ${revisiones || '2'} ronda(s) de revisión. Toda revisión adicional se cotizará y facturará por separado previo al inicio.
+
+3. RESERVA DE PROPIEDAD INTELECTUAL: Los archivos fuente, derechos de autor y licencias de uso NO se transfieren al cliente hasta la acreditación del 100% del pago total acordado. Hasta entonces, el prestador conserva todos los derechos. El cliente solo recibe una licencia de uso limitada y no exclusiva una vez saldada la deuda en su totalidad.
+
+4. PRECIO, PAGO E INTERÉS PUNITORIO: Establecer el monto y condiciones de pago (${condiciones_pago}). Ante mora en el pago, aplicar un interés punitorio del 0,5% diario sobre el saldo impago desde la fecha de vencimiento, sin necesidad de interpelación judicial o extrajudicial.
+
+5. CONFIDENCIALIDAD (NDA): Ambas partes se obligan a mantener confidencialidad sobre información técnica, comercial y estratégica que accedan con motivo del presente contrato, con vigencia de 3 años post-finalización.
+
+6. RESCISIÓN: Cualquier parte puede rescindir con 15 días de preaviso escrito. Si rescinde el cliente, abona los trabajos realizados hasta esa fecha más el 20% del saldo pendiente como compensación.
+
+7. JURISDICCIÓN: Cualquier disputa se resolverá exclusivamente ante los Tribunales Provinciales de Rosario, Santa Fe, renunciando las partes a cualquier otro fuero.
+
+FORMATO:
 - Español formal argentino
-- Conforme al Código Civil y Comercial de la Nación Argentina
-- Incluir: objeto, honorarios y forma de pago (${condiciones_pago}), plazo, propiedad intelectual, confidencialidad, mora (2% mensual), rescisión, jurisdicción en ${ciudad || 'Buenos Aires'}
-- Espacios para firmas al final con nombre y aclaración
-- Solo el texto del contrato, sin comentarios adicionales
-- NO uses markdown: sin asteriscos, sin ##, sin ##, sin ---. Títulos en MAYÚSCULAS.`;
-    }
+- Sin markdown: sin asteriscos, sin ##, sin ---
+- Títulos de cláusulas en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
+- Espacios para firma con nombre completo, aclaración y cargo
+- Solo el texto del contrato, sin comentarios adicionales`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',

@@ -11,15 +11,17 @@ const supabase = createClient(
 );
 
 const campos = [
-  { name: 'prestador',      label: 'Tu nombre completo *',   placeholder: 'Ej: Martín González',            span: 1 },
-  { name: 'cliente',        label: 'Nombre del cliente *',   placeholder: 'Ej: Empresa XYZ SRL',            span: 1 },
-  { name: 'cuit_prestador', label: 'Tu CUIT *',              placeholder: 'Ej: 20-12345678-9',              span: 1 },
-  { name: 'cuit_cliente',   label: 'CUIT del cliente',       placeholder: 'Ej: 30-98765432-1',              span: 1 },
-  { name: 'servicio',       label: 'Servicio contratado *',  placeholder: 'Ej: Diseño de identidad visual', span: 2 },
-  { name: 'monto',          label: 'Monto acordado *',       placeholder: 'Ej: $280.000',                   span: 1 },
-  { name: 'plazo',          label: 'Plazo de entrega',       placeholder: 'Ej: 30 días corridos',           span: 1 },
-  { name: 'ciudad',         label: 'Ciudad',                 placeholder: 'Ej: Buenos Aires',               span: 1 },
-  { name: 'fecha',          label: 'Fecha',                  placeholder: 'Ej: 10/06/2026',                 span: 1 },
+  { name: 'prestador',              label: 'Tu nombre completo *',          placeholder: 'Ej: Martín González',            span: 1 },
+  { name: 'cliente',                label: 'Nombre del cliente *',          placeholder: 'Ej: Empresa XYZ SRL',            span: 1 },
+  { name: 'cuit_prestador',         label: 'Tu CUIT *',                     placeholder: 'Ej: 20-12345678-9',              span: 1 },
+  { name: 'cuit_cliente',           label: 'CUIT del cliente',              placeholder: 'Ej: 30-98765432-1',              span: 1 },
+  { name: 'representante_cliente',  label: 'Representante legal del cliente', placeholder: 'Ej: Ana López (solo si es empresa)', span: 1 },
+  { name: 'cargo_representante',    label: 'Cargo del representante',       placeholder: 'Ej: Directora Comercial',        span: 1 },
+  { name: 'servicio',               label: 'Servicio contratado *',         placeholder: 'Ej: Diseño de identidad visual', span: 2 },
+  { name: 'monto',                  label: 'Monto acordado *',              placeholder: 'Ej: $280.000',                   span: 1 },
+  { name: 'plazo',                  label: 'Plazo de entrega',              placeholder: 'Ej: 30 días corridos',           span: 1 },
+  { name: 'ciudad',                 label: 'Ciudad',                        placeholder: 'Ej: Rosario',                    span: 1 },
+  { name: 'fecha',                  label: 'Fecha',                         placeholder: 'Ej: 10/06/2026',                 span: 1 },
 ];
 
 const serviciosItems = [
@@ -80,13 +82,15 @@ export default function GenerarPage() {
   const [usuario, setUsuario]           = useState<Usuario | null>(null);
   const [cargando, setCargando]         = useState(true);
   const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
-  const [form, setForm]                 = useState<Record<string, string>>({
-    prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
-    servicio: '', monto: '', plazo: '', ciudad: '',
-    fecha: new Date().toLocaleDateString('es-AR'),
-    condiciones_pago: '50% adelanto / 50% al entregar',
-    moneda: 'ARS', email_prestador: '', email_cliente: '',
-  });
+  const [form, setForm] = useState<Record<string, string>>({
+  prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
+  representante_cliente: '', cargo_representante: '',
+  servicio: '', monto: '', plazo: '', ciudad: '',
+  fecha: new Date().toLocaleDateString('es-AR'),
+  condiciones_pago: '50% adelanto / 50% al entregar',
+  moneda: 'ARS', revisiones: '2', email_prestador: '', email_cliente: '',
+});
+
   const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
   const [locadores, setLocadores]       = useState<LocadorData[]>([{ ...initialLocador }]);
   const [garantes, setGarantes]         = useState<GaranteData[]>([{ ...initialGarante }]);
@@ -306,6 +310,15 @@ export default function GenerarPage() {
                     <option value="USDT">Dólares digitales (USDT)</option>
                   </select>
                 </div>
+                <div style={{ gridColumn: 'span 2' }}>
+  <label style={lbl}>Rondas de revisión incluidas en el precio</label>
+  <select name="revisiones" value={form.revisiones} onChange={handleChange} style={{ ...inp, background: 'white' }}>
+    <option value="1">1 ronda de revisión</option>
+    <option value="2">2 rondas de revisión</option>
+    <option value="3">3 rondas de revisión</option>
+    <option value="ilimitadas">Revisiones ilimitadas</option>
+  </select>
+</div>
                 {conFirma && (
                   <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
                     <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Ambas partes recibirán un email para firmar digitalmente.</p>
