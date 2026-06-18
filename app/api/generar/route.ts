@@ -99,17 +99,17 @@ INSTRUCCIONES:
 
     } else {
       const {
-  prestador, cuit_prestador, cliente, cuit_cliente,
-  representante_cliente, cargo_representante,
-  servicio, monto, moneda, plazo, ciudad, fecha,
-  condiciones_pago, revisiones,
-} = body;
+        prestador, cuit_prestador, cliente, cuit_cliente,
+        representante_cliente, cargo_representante,
+        servicio, monto, moneda, plazo, ciudad, fecha,
+        condiciones_pago, revisiones,
+      } = body;
 
-const clienteInfo = representante_cliente
-  ? `${cliente}${cuit_cliente ? ` (CUIT: ${cuit_cliente})` : ''}, representado por ${representante_cliente}${cargo_representante ? `, ${cargo_representante}` : ''}`
-  : `${cliente}${cuit_cliente ? ` (CUIT: ${cuit_cliente})` : ''}`;
+      const clienteInfo = representante_cliente
+        ? `${cliente}${cuit_cliente ? ` (CUIT: ${cuit_cliente})` : ''}, representado por ${representante_cliente}${cargo_representante ? `, ${cargo_representante}` : ''}`
+        : `${cliente}${cuit_cliente ? ` (CUIT: ${cuit_cliente})` : ''}`;
 
-prompt = `Generá un contrato profesional de prestación de servicios para freelancer argentino, conforme al Código Civil y Comercial de la Nación.
+      prompt = `Generá un contrato profesional de prestación de servicios para freelancer argentino, conforme al Código Civil y Comercial de la Nación.
 
 DATOS:
 - Prestador: ${prestador} (CUIT: ${cuit_prestador})
@@ -144,6 +144,7 @@ FORMATO:
 - Títulos de cláusulas en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
 - Espacios para firma con nombre completo, aclaración y cargo
 - Solo el texto del contrato, sin comentarios adicionales`;
+    }
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
