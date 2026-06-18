@@ -259,7 +259,11 @@ await supabase.from('contratos').insert({
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>Plan {planLabel}</span>
-          {usuario?.plan !== 'pro' && !hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario?.contratos_usados}/1 contratos</span>}
+          {usuario?.plan !== 'pro' && !hasExpressCredit && (usuario?.contratos_usados ?? 0) <= 1 && (
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+            {usuario?.contratos_usados}/1 contratos
+          </span>
+          )}
           {hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{creditosExpress} contrato Express disponible</span>}
           {usuario?.plan === 'pro' && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario.contratos_mes}/15 este mes</span>}
           {usuario?.plan !== 'pro' && (
