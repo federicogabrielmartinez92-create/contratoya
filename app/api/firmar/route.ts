@@ -8,15 +8,13 @@ export async function POST(request: NextRequest) {
       base64_pdf,
       prestador, email_prestador,
       cliente,   email_cliente,
-      firmantes_extra = [], // ← garantes adicionales
+      firmantes_extra = [],
       nombre_doc,
     } = await request.json();
 
-    // Signers base: siempre locador/prestador + locatario/cliente
     const signers = [
       { name: prestador, email: email_prestador },
       { name: cliente,   email: email_cliente   },
-      // Garantes con email cargado
       ...firmantes_extra
         .filter((f: { nombre: string; email: string }) => f.email)
         .map((f: { nombre: string; email: string }) => ({ name: f.nombre, email: f.email })),
@@ -36,18 +34,21 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`ZapSign error: ${err}`);
-    }
+    if (!res.ok) throw new Error(`ZapSign error: ${await res.text()}`);
 
     const data = await res.json();
+
     const links = (data.signers ?? []).map((s: { name: string; sign_url: string }) => ({
       nombre: s.name,
       url:    s.sign_url,
     }));
 
-    return NextResponse.json({ links });
+    return NextResponse.json({
+      links,
+      zapsign_token: data.token,        // ← token del documento
+      url_original:  data.original_file, // ← URL del PDF original en ZapSign
+    });
+
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Error al enviar a ZapSign' }, { status: 500 });

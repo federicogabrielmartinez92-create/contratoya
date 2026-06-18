@@ -18,12 +18,14 @@ interface Contrato {
   con_firma: boolean;
   estado: string;
   created_at: string;
+  url_original: string | null;
+  url_firmado: string | null;
 }
 
 const estadoBadge: Record<string, { label: string; bg: string; color: string }> = {
-  generado: { label: 'PDF generado',      bg: '#F3F4F6', color: '#6B7280' },
-  enviado:  { label: 'Enviado a firmar',  bg: '#FEF3C7', color: '#92400E' },
-  firmado:  { label: 'Firmado',           bg: '#D1FAE5', color: '#065F46' },
+  generado: { label: 'PDF generado',     bg: '#F3F4F6', color: '#6B7280' },
+  enviado:  { label: 'Enviado a firmar', bg: '#FEF3C7', color: '#92400E' },
+  firmado:  { label: 'Firmado ✓',        bg: '#D1FAE5', color: '#065F46' },
 };
 
 const tipoBadge: Record<string, { label: string; bg: string; color: string }> = {
@@ -45,7 +47,7 @@ export default function DashboardPage() {
 
       const { data } = await supabase
         .from('contratos')
-        .select('id, nombre, tipo, cliente, monto, con_firma, estado, created_at')
+        .select('id, nombre, tipo, cliente, monto, con_firma, estado, created_at, url_original, url_firmado')
         .order('created_at', { ascending: false });
 
       setContratos(data ?? []);
@@ -83,7 +85,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
 
         {/* Título */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
@@ -101,7 +103,6 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* Tabla */}
         {contratos.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '60px 40px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
@@ -115,12 +116,13 @@ export default function DashboardPage() {
               Generar contrato →
             </a>
           </div>
+
         ) : (
           <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
 
             {/* Header tabla */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
-              {['Contrato', 'Tipo', 'Fecha', 'Estado', 'Firma'].map(h => (
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr', padding: '12px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+              {['Contrato', 'Tipo', 'Fecha', 'Estado', 'Firma', 'Acciones'].map(h => (
                 <span key={h} style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Space Grotesk, sans-serif' }}>
                   {h}
                 </span>
@@ -133,7 +135,7 @@ export default function DashboardPage() {
               const tipo   = tipoBadge[c.tipo]     ?? tipoBadge.servicios;
               return (
                 <div key={c.id}
-                  style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 24px', borderBottom: i < contratos.length - 1 ? '1px solid #F3F4F6' : 'none', alignItems: 'center' }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr', padding: '16px 24px', borderBottom: i < contratos.length - 1 ? '1px solid #F3F4F6' : 'none', alignItems: 'center' }}>
 
                   {/* Nombre */}
                   <div>
@@ -162,6 +164,25 @@ export default function DashboardPage() {
                   <span style={{ fontSize: '12px', color: c.con_firma ? '#15803D' : '#9CA3AF' }}>
                     {c.con_firma ? '✓ Con firma' : '— Solo PDF'}
                   </span>
+
+                  {/* Acciones */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {c.url_original && (
+                      <a href={c.url_original} target="_blank" rel="noreferrer"
+                        style={{ fontSize: '11px', color: '#3B82F6', textDecoration: 'none', background: '#EFF6FF', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        Ver original
+                      </a>
+                    )}
+                    {c.url_firmado && (
+                      <a href={c.url_firmado} target="_blank" rel="noreferrer"
+                        style={{ fontSize: '11px', color: '#15803D', textDecoration: 'none', background: '#DCFCE7', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        ↓ PDF firmado
+                      </a>
+                    )}
+                    {!c.url_original && !c.url_firmado && (
+                      <span style={{ fontSize: '11px', color: '#D1D5DB' }}>—</span>
+                    )}
+                  </div>
                 </div>
               );
             })}

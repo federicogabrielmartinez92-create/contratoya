@@ -179,6 +179,9 @@ export default function GenerarPage() {
       if (data1.error) throw new Error(data1.error);
       setContrato(data1.contrato);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data2: any = null;
+
       if (conFirma) {
         const base64_pdf   = generarPDFBase64(data1.contrato);
         const f1 = tipoContrato === 'alquiler' ? { nombre: locadores[0].nombre, email: locadores[0].email } : { nombre: form.prestador, email: form.email_prestador };
@@ -189,7 +192,7 @@ export default function GenerarPage() {
         ] : [];
         const nombre_doc = tipoContrato === 'alquiler' ? `Contrato de Alquiler - ${formAlquiler.locatario_nombre}` : undefined;
         const res2  = await fetch('/api/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64_pdf, prestador: f1.nombre, email_prestador: f1.email, cliente: f2.nombre, email_cliente: f2.email, firmantes_extra, nombre_doc }) });
-        const data2 = await res2.json();
+        data2 = await res2.json();
         if (data2.error) throw new Error(data2.error);
         setLinks(data2.links ?? []);
       }
@@ -211,14 +214,16 @@ const nombreContrato = tipoContrato === 'alquiler'
   : `Servicios — ${form.cliente}`;
 
 await supabase.from('contratos').insert({
-  usuario_id: usuario.id,
-  tipo:       tipoContrato,
-  nombre:     nombreContrato,
-  prestador:  tipoContrato === 'servicios' ? form.prestador : locadores[0]?.nombre,
-  cliente:    tipoContrato === 'servicios' ? form.cliente   : formAlquiler.locatario_nombre,
-  monto:      tipoContrato === 'servicios' ? form.monto     : formAlquiler.monto_alquiler,
-  con_firma:  conFirma,
-  estado:     conFirma ? 'enviado' : 'generado',
+  usuario_id:    usuario.id,
+  tipo:          tipoContrato,
+  nombre:        nombreContrato,
+  prestador:     tipoContrato === 'servicios' ? form.prestador : locadores[0]?.nombre,
+  cliente:       tipoContrato === 'servicios' ? form.cliente   : formAlquiler.locatario_nombre,
+  monto:         tipoContrato === 'servicios' ? form.monto     : formAlquiler.monto_alquiler,
+  con_firma:     conFirma,
+  zapsign_id:    conFirma ? data2?.zapsign_token : null,  // ← token ZapSign
+  url_original:  conFirma ? data2?.url_original  : null,  // ← URL original
+  estado:        conFirma ? 'enviado' : 'generado',
 });
 
       setTiempo(Math.round((Date.now() - inicio) / 1000));
