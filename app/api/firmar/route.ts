@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardarArchivoPermanente } from '@/lib/zapsignStorage';
+import { getZapsignConfig } from '@/lib/zapsignConfig';
 
 export const runtime = 'nodejs';
 
@@ -21,21 +22,23 @@ export async function POST(request: NextRequest) {
         .map((f: { nombre: string; email: string }) => ({ name: f.nombre, email: f.email })),
     ];
 
-    const res = await fetch('https://api.zapsign.com.br/api/v1/docs/', {
+    const { url, token, sandbox } = getZapsignConfig();
+
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.ZAPSIGN_API_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         name: nombre_doc ?? `Contrato ${prestador} / ${cliente}`,
-         signers,
+        signers,
         base64_pdf,
-        sandbox: true,
+        sandbox,
         send_automatic_email: true,
-        lang: 'es',                  
+        lang: 'es',
         brand_name: 'ContratoYa',
-        }),
+      }),
     });
 
     if (!res.ok) throw new Error(`ZapSign error: ${await res.text()}`);
@@ -47,7 +50,6 @@ export async function POST(request: NextRequest) {
       url:    s.sign_url,
     }));
 
-    // Guardamos copia permanente del original (la de ZapSign expira en 60 min)
     const url_original_permanente = data.original_file
       ? await guardarArchivoPermanente(data.original_file, `originales/${data.token}.pdf`)
       : null;

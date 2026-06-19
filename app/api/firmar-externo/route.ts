@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardarArchivoPermanente } from '@/lib/zapsignStorage';
+import { getZapsignConfig } from '@/lib/zapsignConfig';
 
 export const runtime = 'nodejs';
 
@@ -11,10 +12,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan datos: PDF o firmantes' }, { status: 400 });
     }
 
-    const res = await fetch('https://api.zapsign.com.br/api/v1/docs/', {
+    const { url, token, sandbox } = getZapsignConfig();
+
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.ZAPSIGN_API_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -24,10 +27,10 @@ export async function POST(request: NextRequest) {
           name:  s.nombre,
           email: s.email,
         })),
-        sandbox: true,
+        sandbox,
         send_automatic_email: true,
-        lang: 'es',                  
-        brand_name: 'ContratoYa'
+        lang: 'es',
+        brand_name: 'ContratoYa',
       }),
     });
 
