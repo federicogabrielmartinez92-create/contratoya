@@ -31,6 +31,7 @@ const estadoBadge: Record<string, { label: string; bg: string; color: string }> 
 const tipoBadge: Record<string, { label: string; bg: string; color: string }> = {
   servicios: { label: 'Servicios', bg: '#EDE9FE', color: '#5B21B6' },
   alquiler:  { label: 'Alquiler',  bg: '#DBEAFE', color: '#1E40AF' },
+  subido:    { label: 'Subido',    bg: '#FEE2E2', color: '#991B1B' },
 };
 
 export default function DashboardPage() {
