@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardarArchivoPermanente } from '@/lib/zapsignStorage';
 import { getZapsignConfig } from '@/lib/zapsignConfig';
+import { enviarEmailFirma } from '@/lib/email';
 
 export const runtime = 'nodejs';
 
@@ -35,9 +36,7 @@ export async function POST(request: NextRequest) {
         signers,
         base64_pdf,
         sandbox,
-        send_automatic_email: true,
-        lang: 'es',
-        brand_name: 'ContratoYa',
+        send_automatic_email: false, // ← lo mandamos nosotros con Resend
       }),
     });
 
@@ -49,6 +48,19 @@ export async function POST(request: NextRequest) {
       nombre: s.name,
       url:    s.sign_url,
     }));
+
+    // Enviar los emails de firma con nuestra propia marca
+    const nombreDoc = nombre_doc ?? `Contrato ${prestador} / ${cliente}`;
+    await Promise.all(
+      links.map((link) =>
+        enviarEmailFirma({
+          destinatarioNombre: link.nombre,
+          destinatarioEmail:  signers.find(s => s.name === link.nombre)?.email ?? '',
+          signUrl:            link.url,
+          nombreDocumento:    nombreDoc,
+        })
+      )
+    );
 
     const url_original_permanente = data.original_file
       ? await guardarArchivoPermanente(data.original_file, `originales/${data.token}.pdf`)
