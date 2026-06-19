@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Enviar los emails de firma con nuestra propia marca
     const nombreDoc = nombre_doc ?? `Contrato ${prestador} / ${cliente}`;
     await Promise.all(
-      links.map((link) =>
+      links.map((link: { nombre: string; url: string }) =>
         enviarEmailFirma({
           destinatarioNombre: link.nombre,
           destinatarioEmail:  signers.find(s => s.name === link.nombre)?.email ?? '',
