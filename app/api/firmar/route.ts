@@ -29,10 +29,11 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         name: nombre_doc ?? `Contrato ${prestador} / ${cliente}`,
-        signers,
+         signers,
         base64_pdf,
         sandbox: true,
-      }),
+        send_automatic_email: true,
+        }),
     });
 
     if (!res.ok) throw new Error(`ZapSign error: ${await res.text()}`);

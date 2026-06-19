@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
           email: s.email,
         })),
         sandbox: true,
+        send_automatic_email: true,
       }),
     });
 
