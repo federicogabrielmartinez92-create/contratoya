@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { guardarArchivoPermanente } from '@/lib/zapsignStorage';
 
 export const runtime = 'nodejs';
 
@@ -43,10 +44,15 @@ export async function POST(request: NextRequest) {
       url:    s.sign_url,
     }));
 
+    // Guardamos copia permanente del original (la de ZapSign expira en 60 min)
+    const url_original_permanente = data.original_file
+      ? await guardarArchivoPermanente(data.original_file, `originales/${data.token}.pdf`)
+      : null;
+
     return NextResponse.json({
       links,
-      zapsign_token: data.token,        // ← token del documento
-      url_original:  data.original_file, // ← URL del PDF original en ZapSign
+      zapsign_token: data.token,
+      url_original:  url_original_permanente ?? data.original_file,
     });
 
   } catch (error) {

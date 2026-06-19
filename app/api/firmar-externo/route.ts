@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { guardarArchivoPermanente } from '@/lib/zapsignStorage';
 
 export const runtime = 'nodejs';
 
@@ -35,10 +36,14 @@ export async function POST(request: NextRequest) {
       url:    s.sign_url,
     }));
 
+    const url_original_permanente = data.original_file
+      ? await guardarArchivoPermanente(data.original_file, `originales/${data.token}.pdf`)
+      : null;
+
     return NextResponse.json({
       links,
       zapsign_token: data.token,
-      url_original:  data.original_file,
+      url_original:  url_original_permanente ?? data.original_file,
     });
 
   } catch (error) {
