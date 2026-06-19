@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
         base64_pdf,
         sandbox: true,
         send_automatic_email: true,
+        lang: 'es',                  
+        brand_name: 'ContratoYa',
         }),
     });
 

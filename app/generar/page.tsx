@@ -171,8 +171,8 @@ export default function GenerarPage() {
 
     try {
       const payload = tipoContrato === 'alquiler'
-        ? { tipo: 'alquiler', ...formAlquiler, locadores, garantes }
-        : { tipo: 'servicios', ...form };
+      ? { tipo: 'alquiler', ...formAlquiler, locadores, garantes, con_firma: conFirma }
+      : { tipo: 'servicios', ...form, con_firma: conFirma };
 
       const res1  = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data1 = await res1.json();

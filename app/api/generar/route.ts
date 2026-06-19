@@ -8,7 +8,11 @@ const client = new Anthropic();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tipo = 'servicios' } = body;
+    const { tipo = 'servicios', con_firma = false } = body;
+
+    const instruccionFirma = con_firma
+      ? `Este documento se firmará digitalmente a través de una plataforma de firma electrónica que agrega su propia hoja de validación al final. Por eso: NO incluyas espacios de firma manual (no agregues líneas para firma, aclaración, cargo, fecha ni bloques repetidos de datos de las partes al final del documento). El contrato debe terminar directamente después de la última cláusula (jurisdicción), sin sección de firmas.`
+      : `Este documento se firmará en papel, de forma manuscrita. Al final del contrato, dejá espacios claros de firma para cada parte, con líneas para: nombre completo, aclaración, cargo (si corresponde) y fecha.`;
 
     let prompt = '';
 
@@ -93,7 +97,7 @@ JURISDICCION: ${jurisdiccion}
 INSTRUCCIONES:
 - Español formal legal argentino
 - Incluir obligatoriamente: objeto y destino, plazo y renovación, precio y actualización (cláusula índice detallada), depósito y condiciones de devolución, distribución de servicios e impuestos según lo indicado, cláusula de mora con el interés indicado, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada y preaviso, jurisdicción y competencia
-- Espacios para firmas de todos los locadores, locatario y garantes al final
+- ${instruccionFirma}
 - Sin markdown: sin asteriscos, sin ##, sin ---. Títulos en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
 - Solo el texto del contrato, sin comentarios adicionales`;
 
@@ -124,7 +128,7 @@ DATOS:
 
 INSTRUCCIONES - Incluí OBLIGATORIAMENTE estas cláusulas:
 
-1. IDENTIFICACIÓN DE PARTES: Si el cliente tiene representante legal, identificarlo con nombre y cargo. Dejar espacios para firma con nombre, aclaración y cargo de cada parte.
+1. IDENTIFICACIÓN DE PARTES: Si el cliente tiene representante legal, identificarlo con nombre y cargo en el cuerpo del contrato.
 
 2. OBJETO Y ALCANCE DEL SERVICIO: Describir el servicio. Establecer explícitamente que el precio base incluye ${revisiones || '2'} ronda(s) de revisión. Toda revisión adicional se cotizará y facturará por separado previo al inicio.
 
@@ -138,11 +142,12 @@ INSTRUCCIONES - Incluí OBLIGATORIAMENTE estas cláusulas:
 
 7. JURISDICCIÓN: Cualquier disputa se resolverá exclusivamente ante los Tribunales Provinciales de Rosario, Santa Fe, renunciando las partes a cualquier otro fuero.
 
+8. CIERRE: ${instruccionFirma}
+
 FORMATO:
 - Español formal argentino
 - Sin markdown: sin asteriscos, sin ##, sin ---
 - Títulos de cláusulas en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
-- Espacios para firma con nombre completo, aclaración y cargo
 - Solo el texto del contrato, sin comentarios adicionales`;
     }
 
