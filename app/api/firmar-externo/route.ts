@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const nombreDoc = nombre_doc || 'Contrato subido';
     await Promise.all(
-      links.map((link) => {
+      links.map((link: { nombre: string; url: string }) => {
         const firmanteOriginal = signers.find((s: { nombre: string; email: string }) => s.nombre === link.nombre);
         return enviarEmailFirma({
           destinatarioNombre: link.nombre,
