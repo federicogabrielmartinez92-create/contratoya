@@ -20,6 +20,7 @@ interface Contrato {
   created_at: string;
   url_original: string | null;
   url_firmado: string | null;
+  zapsign_id: string | null;
 }
 
 const estadoBadge: Record<string, { label: string; bg: string; color: string }> = {
@@ -36,22 +37,25 @@ const tipoBadge: Record<string, { label: string; bg: string; color: string }> = 
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [contratos, setContratos] = useState<Contrato[]>([]);
-  const [email, setEmail]         = useState('');
-  const [cargando, setCargando]   = useState(true);
+  const [contratos, setContratos]   = useState<Contrato[]>([]);
+  const [email, setEmail]           = useState('');
+  const [cargando, setCargando]     = useState(true);
+  const [verificando, setVerificando] = useState<Record<string, boolean>>({});
+
+  const cargarContratos = async () => {
+    const { data } = await supabase
+      .from('contratos')
+      .select('id, nombre, tipo, cliente, monto, con_firma, estado, created_at, url_original, url_firmado, zapsign_id')
+      .order('created_at', { ascending: false });
+    setContratos(data ?? []);
+  };
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/auth/login'); return; }
       setEmail(session.user.email ?? '');
-
-      const { data } = await supabase
-        .from('contratos')
-        .select('id, nombre, tipo, cliente, monto, con_firma, estado, created_at, url_original, url_firmado')
-        .order('created_at', { ascending: false });
-
-      setContratos(data ?? []);
+      await cargarContratos();
       setCargando(false);
     };
     init();
@@ -60,6 +64,21 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
+  };
+
+  const handleVerificarFirma = async (c: Contrato) => {
+    if (!c.zapsign_id) return;
+    setVerificando({ ...verificando, [c.id]: true });
+    try {
+      await fetch('/api/contratos/verificar-firma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zapsign_id: c.zapsign_id }),
+      });
+      await cargarContratos();
+    } finally {
+      setVerificando({ ...verificando, [c.id]: false });
+    }
   };
 
   const formatFecha = (iso: string) =>
@@ -88,7 +107,6 @@ export default function DashboardPage() {
 
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
 
-        {/* Título */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>
             <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '28px', fontWeight: 700, color: '#111827', margin: 0 }}>
@@ -121,8 +139,7 @@ export default function DashboardPage() {
         ) : (
           <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
 
-            {/* Header tabla */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr', padding: '12px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.8fr', padding: '12px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
               {['Contrato', 'Tipo', 'Fecha', 'Estado', 'Firma', 'Acciones'].map(h => (
                 <span key={h} style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Space Grotesk, sans-serif' }}>
                   {h}
@@ -130,15 +147,13 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Filas */}
             {contratos.map((c, i) => {
               const estado = estadoBadge[c.estado] ?? estadoBadge.generado;
               const tipo   = tipoBadge[c.tipo]     ?? tipoBadge.servicios;
               return (
                 <div key={c.id}
-                  style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr', padding: '16px 24px', borderBottom: i < contratos.length - 1 ? '1px solid #F3F4F6' : 'none', alignItems: 'center' }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.8fr', padding: '16px 24px', borderBottom: i < contratos.length - 1 ? '1px solid #F3F4F6' : 'none', alignItems: 'center' }}>
 
-                  {/* Nombre */}
                   <div>
                     <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>
                       {c.nombre || `Contrato con ${c.cliente}`}
@@ -146,27 +161,22 @@ export default function DashboardPage() {
                     {c.monto && <p style={{ fontSize: '12px', color: '#9CA3AF', margin: 0 }}>${c.monto}</p>}
                   </div>
 
-                  {/* Tipo */}
                   <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: tipo.bg, color: tipo.color, width: 'fit-content' }}>
                     {tipo.label}
                   </span>
 
-                  {/* Fecha */}
                   <span style={{ fontSize: '13px', color: '#6B7280' }}>
                     {formatFecha(c.created_at)}
                   </span>
 
-                  {/* Estado */}
                   <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: estado.bg, color: estado.color, width: 'fit-content' }}>
                     {estado.label}
                   </span>
 
-                  {/* Firma */}
                   <span style={{ fontSize: '12px', color: c.con_firma ? '#15803D' : '#9CA3AF' }}>
                     {c.con_firma ? '✓ Con firma' : '— Solo PDF'}
                   </span>
 
-                  {/* Acciones */}
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {c.url_original && (
                       <a href={c.url_original} target="_blank" rel="noreferrer"
@@ -180,7 +190,13 @@ export default function DashboardPage() {
                         ↓ PDF firmado
                       </a>
                     )}
-                    {!c.url_original && !c.url_firmado && (
+                    {c.con_firma && c.estado !== 'firmado' && c.zapsign_id && (
+                      <button onClick={() => handleVerificarFirma(c)} disabled={verificando[c.id]}
+                        style={{ fontSize: '11px', color: '#6B21A8', background: '#F3E8FF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: verificando[c.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+                        {verificando[c.id] ? '⏳ Revisando...' : '🔄 Verificar firma'}
+                      </button>
+                    )}
+                    {!c.url_original && !c.url_firmado && !c.con_firma && (
                       <span style={{ fontSize: '11px', color: '#D1D5DB' }}>—</span>
                     )}
                   </div>

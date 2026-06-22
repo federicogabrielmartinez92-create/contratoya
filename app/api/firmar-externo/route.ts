@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
         })),
         sandbox,
         send_automatic_email: false, // ← lo mandamos nosotros con Resend
+        lang: 'es',
       }),
     });
 

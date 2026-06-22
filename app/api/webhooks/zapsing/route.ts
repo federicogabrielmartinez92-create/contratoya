@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     if (!token) return NextResponse.json({ ok: true });
 
-    if (status === 'completed' && signed_file) {
+    if (status === 'signed' && signed_file) {
       // Descargamos y guardamos copia permanente (la de ZapSign expira en 60 min)
       const url_firmado_permanente = await guardarArchivoPermanente(
         signed_file,
