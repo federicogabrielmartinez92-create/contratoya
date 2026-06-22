@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import jsPDF from 'jspdf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +22,7 @@ interface Contrato {
   url_original: string | null;
   url_firmado: string | null;
   zapsign_id: string | null;
+  contenido: string | null;
 }
 
 const estadoBadge: Record<string, { label: string; bg: string; color: string }> = {
@@ -37,15 +39,15 @@ const tipoBadge: Record<string, { label: string; bg: string; color: string }> = 
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [contratos, setContratos]   = useState<Contrato[]>([]);
-  const [email, setEmail]           = useState('');
-  const [cargando, setCargando]     = useState(true);
+  const [contratos, setContratos]     = useState<Contrato[]>([]);
+  const [email, setEmail]             = useState('');
+  const [cargando, setCargando]       = useState(true);
   const [verificando, setVerificando] = useState<Record<string, boolean>>({});
 
   const cargarContratos = async () => {
     const { data } = await supabase
       .from('contratos')
-      .select('id, nombre, tipo, cliente, monto, con_firma, estado, created_at, url_original, url_firmado, zapsign_id')
+      .select('id, nombre, tipo, cliente, monto, con_firma, estado, created_at, url_original, url_firmado, zapsign_id, contenido')
       .order('created_at', { ascending: false });
     setContratos(data ?? []);
   };
@@ -79,6 +81,23 @@ export default function DashboardPage() {
     } finally {
       setVerificando({ ...verificando, [c.id]: false });
     }
+  };
+
+  const crearPDF = (texto: string) => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    const W = doc.internal.pageSize.getWidth(); const H = doc.internal.pageSize.getHeight();
+    const mx = 50; const lh = 14;
+    const lines = doc.splitTextToSize(texto, W - mx * 2) as string[];
+    let y = mx + lh;
+    lines.forEach((line) => { if (y > H - mx) { doc.addPage(); y = mx + lh; } doc.text(line, mx, y); y += lh; });
+    return doc;
+  };
+
+  const handleDescargarPDF = (c: Contrato) => {
+    if (!c.contenido) return;
+    const nombreArchivo = (c.nombre || 'contrato').replace(/\s+/g, '-').toLowerCase() + '.pdf';
+    crearPDF(c.contenido).save(nombreArchivo);
   };
 
   const formatFecha = (iso: string) =>
@@ -196,7 +215,13 @@ export default function DashboardPage() {
                         {verificando[c.id] ? '⏳ Revisando...' : '🔄 Verificar firma'}
                       </button>
                     )}
-                    {!c.url_original && !c.url_firmado && !c.con_firma && (
+                    {!c.con_firma && c.contenido && (
+                      <button onClick={() => handleDescargarPDF(c)}
+                        style={{ fontSize: '11px', color: '#0A1628', background: '#FEF3C7', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        ↓ Descargar PDF
+                      </button>
+                    )}
+                    {!c.url_original && !c.url_firmado && !c.contenido && (
                       <span style={{ fontSize: '11px', color: '#D1D5DB' }}>—</span>
                     )}
                   </div>

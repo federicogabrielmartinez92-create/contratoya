@@ -221,6 +221,7 @@ await supabase.from('contratos').insert({
   cliente:       tipoContrato === 'servicios' ? form.cliente   : formAlquiler.locatario_nombre,
   monto:         tipoContrato === 'servicios' ? form.monto     : formAlquiler.monto_alquiler,
   con_firma:     conFirma,
+  contenido:     data1.contrato,
   zapsign_id:    conFirma ? data2?.zapsign_token : null,  // ← token ZapSign
   url_original:  conFirma ? data2?.url_original  : null,  // ← URL original
   estado:        conFirma ? 'enviado' : 'generado',
