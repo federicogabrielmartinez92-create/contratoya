@@ -14,7 +14,7 @@ type Firmante = { nombre: string; email: string };
 
 interface Usuario {
   id: string; email: string; plan: string;
-  contratos_usados: number; contratos_mes: number; creditos_express: number;
+  contratos_usados: number; contratos_mes: number; creditos_firma: number;
 }
 
 export default function SubirContratoPage() {
@@ -48,7 +48,7 @@ export default function SubirContratoPage() {
         setUsuario(data);
       } else {
         await supabase.from('usuarios').insert({ id: user.id, email: user.email });
-        setUsuario({ id: user.id, email: user.email!, plan: 'gratis', contratos_usados: 0, contratos_mes: 0, creditos_express: 0 });
+        setUsuario({ id: user.id, email: user.email!, plan: 'gratis', contratos_usados: 0, contratos_mes: 0, creditos_firma: 0 });
       }
       setCargando(false);
     };
@@ -87,14 +87,11 @@ export default function SubirContratoPage() {
     if (!usuario || !file) { setError('Subí un archivo PDF primero.'); return; }
 
     // Límites de plan (mismo criterio que /generar)
-    const creditosExpress = usuario.creditos_express ?? 0;
-    if (usuario.plan === 'pro') {
-      if (usuario.contratos_mes >= 15) { setError('Llegaste al límite de 15 contratos del plan Pro este mes.'); return; }
-    } else if (creditosExpress > 0) {
-      // OK
-    } else {
-      if (usuario.contratos_usados >= 1) { setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.'); return; }
-    }
+    const creditosFirma = usuario.creditos_firma ?? 0;
+if (creditosFirma === 0 && usuario.contratos_usados >= 1) {
+  setError('Ya usaste tu contrato gratuito. Comprá créditos en /precios para seguir subiendo contratos.');
+  return;
+}
 
     if (firmantes.some(f => !f.nombre || !f.email)) { setError('Completá nombre y email de todos los firmantes.'); return; }
 
@@ -140,17 +137,14 @@ export default function SubirContratoPage() {
       });
 
       // 5. Actualizar contador de uso (mismo criterio que /generar)
-      const ce = usuario.creditos_express ?? 0;
-      if (usuario.plan === 'pro') {
-        await supabase.from('usuarios').update({ contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
-        setUsuario({ ...usuario, contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 });
-      } else if (ce > 0) {
-        await supabase.from('usuarios').update({ creditos_express: ce - 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
-        setUsuario({ ...usuario, creditos_express: ce - 1, contratos_usados: usuario.contratos_usados + 1 });
-      } else {
-        await supabase.from('usuarios').update({ contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
-        setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1 });
-      }
+      const cf = usuario.creditos_firma ?? 0;
+if (cf > 0) {
+  await supabase.from('usuarios').update({ creditos_firma: cf - 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
+  setUsuario({ ...usuario, creditos_firma: cf - 1, contratos_usados: usuario.contratos_usados + 1 });
+} else {
+  await supabase.from('usuarios').update({ contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
+  setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1 });
+}
 
       setEnviado(true);
     } catch (e) {

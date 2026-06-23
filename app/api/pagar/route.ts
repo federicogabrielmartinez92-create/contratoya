@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { PLANES, PlanId } from '@/lib/planes';
 
 export const runtime = 'nodejs';
 
@@ -8,62 +9,39 @@ export async function POST(request: NextRequest) {
     const { plan, userId, userEmail } = await request.json();
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://contratoya.app';
 
+    const planInfo = PLANES[plan as PlanId];
+    if (!planInfo) {
+      return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
+    }
+
     const client = new MercadoPagoConfig({
       accessToken: process.env.MP_ACCESS_TOKEN!,
     });
 
     const preference = new Preference(client);
 
-    if (plan === 'express') {
-      const response = await preference.create({
-        body: {
-          items: [{
-            id: 'express',
-            title: 'ContratoYa Express — Contrato con firma digital',
-            quantity: 1,
-            unit_price: 3.99,
-            currency_id: 'USD',
-          }],
-          payer: { email: userEmail },
-          notification_url: 'https://contratoya.app/api/webhooks/mp',
-          back_urls: {
-            success: `${baseUrl}/pago/exito?plan=express&userId=${userId}`,
-            failure: `${baseUrl}/pago/error`,
-            pending: `${baseUrl}/pago/pendiente`,
-                        },
-            ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
-            external_reference: `express_${userId}`,
-        
+    const response = await preference.create({
+      body: {
+        items: [{
+          id: plan,
+          title: planInfo.titulo,
+          quantity: 1,
+          unit_price: planInfo.precio,
+          currency_id: 'USD',
+        }],
+        payer: { email: userEmail },
+        notification_url: 'https://contratoya.app/api/webhooks/mp',
+        back_urls: {
+          success: `${baseUrl}/pago/exito?plan=${plan}&userId=${userId}`,
+          failure: `${baseUrl}/pago/error`,
+          pending: `${baseUrl}/pago/pendiente`,
         },
-      });
-      return NextResponse.json({ url: response.init_point });
-    }
+        ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
+        external_reference: `${plan}_${userId}`,
+      },
+    });
 
-    if (plan === 'pro') {
-      const response = await preference.create({
-        body: {
-          items: [{
-            id: 'pro',
-            title: 'ContratoYa Pro — Suscripción mensual',
-            quantity: 1,
-            unit_price: 19.90,
-            currency_id: 'USD',
-          }],
-          payer: { email: userEmail },
-          notification_url: 'https://contratoya.app/api/webhooks/mp',
-          back_urls: {
-            success: `${baseUrl}/pago/exito?plan=pro&userId=${userId}`,
-            failure: `${baseUrl}/pago/error`,
-            pending: `${baseUrl}/pago/pendiente`,
-            },
-            ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
-            external_reference: `pro_${userId}`,
-        },
-      });
-      return NextResponse.json({ url: response.init_point });
-    }
-
-    return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
+    return NextResponse.json({ url: response.init_point });
 
   } catch (error) {
     console.error(error);

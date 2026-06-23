@@ -74,7 +74,7 @@ const initialFormAlquiler: Record<string, string> = {
 
 interface Usuario {
   id: string; email: string; plan: string;
-  contratos_usados: number; contratos_mes: number; creditos_express: number;
+  contratos_usados: number; contratos_mes: number; creditos_firma: number;
 }
 
 export default function GenerarPage() {
@@ -83,13 +83,13 @@ export default function GenerarPage() {
   const [cargando, setCargando]         = useState(true);
   const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
   const [form, setForm] = useState<Record<string, string>>({
-  prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
-  representante_cliente: '', cargo_representante: '',
-  servicio: '', monto: '', plazo: '', ciudad: '',
-  fecha: new Date().toLocaleDateString('es-AR'),
-  condiciones_pago: '50% adelanto / 50% al entregar',
-  moneda: 'ARS', revisiones: '2', email_prestador: '', email_cliente: '',
-});
+    prestador: '', cliente: '', cuit_prestador: '', cuit_cliente: '',
+    representante_cliente: '', cargo_representante: '',
+    servicio: '', monto: '', plazo: '', ciudad: '',
+    fecha: new Date().toLocaleDateString('es-AR'),
+    condiciones_pago: '50% adelanto / 50% al entregar',
+    moneda: 'ARS', revisiones: '2', email_prestador: '', email_cliente: '',
+  });
 
   const [formAlquiler, setFormAlquiler] = useState<Record<string, string>>(initialFormAlquiler);
   const [locadores, setLocadores]       = useState<LocadorData[]>([{ ...initialLocador }]);
@@ -111,7 +111,7 @@ export default function GenerarPage() {
         setUsuario(data);
       } else {
         await supabase.from('usuarios').insert({ id: user.id, email: user.email });
-        setUsuario({ id: user.id, email: user.email!, plan: 'gratis', contratos_usados: 0, contratos_mes: 0, creditos_express: 0 });
+        setUsuario({ id: user.id, email: user.email!, plan: 'gratis', contratos_usados: 0, contratos_mes: 0, creditos_firma: 0 });
       }
       setCargando(false);
     };
@@ -148,15 +148,12 @@ export default function GenerarPage() {
 
   const handleGenerar = async () => {
     if (!usuario) return;
-    const creditosExpress = usuario.creditos_express ?? 0;
-    if (usuario.plan === 'pro') {
-      if (usuario.contratos_mes >= 15) { setError('Llegaste al límite de 15 contratos del plan Pro este mes.'); return; }
-    } else if (creditosExpress > 0) {
-      // OK
-    } else {
-      if (usuario.contratos_usados >= 1) { setError('Ya usaste tu contrato gratuito. Elegí un plan para continuar.'); return; }
+    const creditosFirma = usuario.creditos_firma ?? 0;
+
+    if (creditosFirma === 0) {
+      if (usuario.contratos_usados >= 1) { setError('Ya usaste tu contrato gratuito. Comprá créditos para seguir generando.'); return; }
+      if (conFirma) { setError('La firma digital requiere créditos. Comprá un plan en /precios.'); return; }
     }
-    if (conFirma && usuario.plan !== 'pro' && creditosExpress === 0) { setError('La firma digital requiere un plan Express o Pro.'); return; }
 
     if (tipoContrato === 'servicios') {
       if (!form.prestador || !form.cliente || !form.servicio || !form.monto || !form.cuit_prestador) { setError('Completá los campos obligatorios (*)'); return; }
@@ -171,8 +168,8 @@ export default function GenerarPage() {
 
     try {
       const payload = tipoContrato === 'alquiler'
-      ? { tipo: 'alquiler', ...formAlquiler, locadores, garantes, con_firma: conFirma }
-      : { tipo: 'servicios', ...form, con_firma: conFirma };
+        ? { tipo: 'alquiler', ...formAlquiler, locadores, garantes, con_firma: conFirma }
+        : { tipo: 'servicios', ...form, con_firma: conFirma };
 
       const res1  = await fetch('/api/generar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data1 = await res1.json();
@@ -197,35 +194,33 @@ export default function GenerarPage() {
         setLinks(data2.links ?? []);
       }
 
-      const ce = usuario.creditos_express ?? 0;
-      if (usuario.plan === 'pro') {
-        await supabase.from('usuarios').update({ contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
-        setUsuario({ ...usuario, contratos_mes: usuario.contratos_mes + 1, contratos_usados: usuario.contratos_usados + 1 });
-      } else if (ce > 0) {
-        await supabase.from('usuarios').update({ creditos_express: ce - 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
-        setUsuario({ ...usuario, creditos_express: ce - 1, contratos_usados: usuario.contratos_usados + 1 });
+      const cf = usuario.creditos_firma ?? 0;
+      if (cf > 0) {
+        await supabase.from('usuarios').update({ creditos_firma: cf - 1, contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
+        setUsuario({ ...usuario, creditos_firma: cf - 1, contratos_usados: usuario.contratos_usados + 1 });
       } else {
         await supabase.from('usuarios').update({ contratos_usados: usuario.contratos_usados + 1 }).eq('id', usuario.id);
         setUsuario({ ...usuario, contratos_usados: usuario.contratos_usados + 1 });
       }
-      // Guardar en tabla contratos
-const nombreContrato = tipoContrato === 'alquiler'
-  ? `Alquiler — ${formAlquiler.locatario_nombre}`
-  : `Servicios — ${form.cliente}`;
 
-await supabase.from('contratos').insert({
-  usuario_id:    usuario.id,
-  tipo:          tipoContrato,
-  nombre:        nombreContrato,
-  prestador:     tipoContrato === 'servicios' ? form.prestador : locadores[0]?.nombre,
-  cliente:       tipoContrato === 'servicios' ? form.cliente   : formAlquiler.locatario_nombre,
-  monto:         tipoContrato === 'servicios' ? form.monto     : formAlquiler.monto_alquiler,
-  con_firma:     conFirma,
-  contenido:     data1.contrato,
-  zapsign_id:    conFirma ? data2?.zapsign_token : null,  // ← token ZapSign
-  url_original:  conFirma ? data2?.url_original  : null,  // ← URL original
-  estado:        conFirma ? 'enviado' : 'generado',
-});
+      // Guardar en tabla contratos
+      const nombreContrato = tipoContrato === 'alquiler'
+        ? `Alquiler — ${formAlquiler.locatario_nombre}`
+        : `Servicios — ${form.cliente}`;
+
+      await supabase.from('contratos').insert({
+        usuario_id:    usuario.id,
+        tipo:          tipoContrato,
+        nombre:        nombreContrato,
+        prestador:     tipoContrato === 'servicios' ? form.prestador : locadores[0]?.nombre,
+        cliente:       tipoContrato === 'servicios' ? form.cliente   : formAlquiler.locatario_nombre,
+        monto:         tipoContrato === 'servicios' ? form.monto     : formAlquiler.monto_alquiler,
+        con_firma:     conFirma,
+        contenido:     data1.contrato,
+        zapsign_id:    conFirma ? data2?.zapsign_token : null,
+        url_original:  conFirma ? data2?.url_original  : null,
+        estado:        conFirma ? 'enviado' : 'generado',
+      });
 
       setTiempo(Math.round((Date.now() - inicio) / 1000));
     } catch { setError('Hubo un error al generar el contrato. Intentá de nuevo.'); }
@@ -242,11 +237,9 @@ await supabase.from('contratos').insert({
     </main>
   );
 
-  const creditosExpress  = usuario?.creditos_express ?? 0;
-  const hasExpressCredit = creditosExpress > 0;
-  const planColor   = usuario?.plan === 'pro' ? '#7C3AED' : hasExpressCredit ? '#0EA5E9' : '#6B7280';
-  const planLabel   = usuario?.plan === 'pro' ? 'Pro'     : hasExpressCredit ? 'Express' : 'Gratis';
-  const canGenerate = usuario?.plan === 'pro' || hasExpressCredit || (usuario?.contratos_usados ?? 0) < 1;
+  const creditosFirma = usuario?.creditos_firma ?? 0;
+  const tieneCreditos = creditosFirma > 0;
+  const canGenerate    = tieneCreditos || (usuario?.contratos_usados ?? 0) < 1;
   const estadosCiviles = ['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Unión convivencial'];
   const responsables   = ['Locatario', 'Locador', 'A cargo de ambos', 'No aplica'];
 
@@ -259,19 +252,18 @@ await supabase.from('contratos').insert({
           Contrato<span style={{ color: '#F5A623' }}>Ya</span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: planColor, color: '#fff' }}>Plan {planLabel}</span>
-          {usuario?.plan !== 'pro' && !hasExpressCredit && (usuario?.contratos_usados ?? 0) <= 1 && (
-          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-            {usuario?.contratos_usados}/1 contratos
-          </span>
+          {tieneCreditos ? (
+            <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: '#7C3AED', color: '#fff' }}>
+              {creditosFirma} crédito{creditosFirma !== 1 ? 's' : ''}
+            </span>
+          ) : (
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+              {usuario?.contratos_usados ?? 0}/1 contratos gratis
+            </span>
           )}
-          {hasExpressCredit && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{creditosExpress} contrato Express disponible</span>}
-          {usuario?.plan === 'pro' && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{usuario.contratos_mes}/15 este mes</span>}
-          {usuario?.plan !== 'pro' && (
-            <a href="/precios" style={{ fontSize: '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 12px', borderRadius: '100px', textDecoration: 'none' }}>
-              Mejorar plan →
-            </a>
-          )}
+          <a href="/precios" style={{ fontSize: '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 12px', borderRadius: '100px', textDecoration: 'none' }}>
+            Comprar créditos →
+          </a>
           <a href="/dashboard" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
             Mis contratos
           </a>
@@ -287,14 +279,14 @@ await supabase.from('contratos').insert({
         <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '8px', letterSpacing: '-0.5px' }}>Generá tu contrato</h1>
         <p style={{ color: '#6B7280', fontSize: '16px', marginBottom: '32px' }}>Completá los datos y la IA genera tu contrato en segundos.</p>
 
-        {usuario?.plan !== 'pro' && !hasExpressCredit && (usuario?.contratos_usados ?? 0) >= 1 && (
+        {!tieneCreditos && (usuario?.contratos_usados ?? 0) >= 1 && (
           <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#92400E', margin: '0 0 2px' }}>Ya usaste tu contrato gratuito</p>
-              <p style={{ fontSize: '13px', color: '#B45309', margin: 0 }}>Elegí un plan para seguir generando contratos</p>
+              <p style={{ fontSize: '13px', color: '#B45309', margin: 0 }}>Comprá créditos para seguir generando contratos con firma digital</p>
             </div>
             <a href="/precios" style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', background: '#FDE68A', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-      Comprar Express →
+              Ver planes →
             </a>
           </div>
         )}
@@ -316,7 +308,7 @@ await supabase.from('contratos').insert({
             <div style={{ display: 'flex', gap: '12px', marginBottom: '28px' }}>
               {[
                 { val: false, label: '📄  Solo PDF',         desc: 'Descarga directa' },
-                { val: true,  label: '✍️  Con firma digital', desc: (!hasExpressCredit && usuario?.plan !== 'pro') ? 'Requiere plan Express o Pro' : 'Ambas partes firman online' },
+                { val: true,  label: '✍️  Con firma digital', desc: !tieneCreditos ? 'Requiere créditos — comprá un plan' : 'Ambas partes firman online' },
               ].map(opt => (
                 <button key={String(opt.val)} onClick={() => setConFirma(opt.val)}
                   style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', cursor: 'pointer', border: conFirma === opt.val ? '2px solid #F5A623' : '1.5px solid #E5E7EB', background: conFirma === opt.val ? '#FFFBF0' : '#fff', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}>
@@ -345,14 +337,14 @@ await supabase.from('contratos').insert({
                   </select>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-  <label style={lbl}>Rondas de revisión incluidas en el precio</label>
-  <select name="revisiones" value={form.revisiones} onChange={handleChange} style={{ ...inp, background: 'white' }}>
-    <option value="1">1 ronda de revisión</option>
-    <option value="2">2 rondas de revisión</option>
-    <option value="3">3 rondas de revisión</option>
-    <option value="ilimitadas">Revisiones ilimitadas</option>
-  </select>
-</div>
+                  <label style={lbl}>Rondas de revisión incluidas en el precio</label>
+                  <select name="revisiones" value={form.revisiones} onChange={handleChange} style={{ ...inp, background: 'white' }}>
+                    <option value="1">1 ronda de revisión</option>
+                    <option value="2">2 rondas de revisión</option>
+                    <option value="3">3 rondas de revisión</option>
+                    <option value="ilimitadas">Revisiones ilimitadas</option>
+                  </select>
+                </div>
                 {conFirma && (
                   <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
                     <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Ambas partes recibirán un email para firmar digitalmente.</p>
