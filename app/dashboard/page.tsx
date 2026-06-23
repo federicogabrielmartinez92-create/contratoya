@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +40,7 @@ const tipoBadge: Record<string, { label: string; bg: string; color: string }> = 
 
 export default function DashboardPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [contratos, setContratos]     = useState<Contrato[]>([]);
   const [email, setEmail]             = useState('');
   const [cargando, setCargando]       = useState(true);
@@ -109,26 +111,66 @@ export default function DashboardPage() {
     </main>
   );
 
+  const renderAcciones = (c: Contrato) => (
+    <>
+      {c.url_original && (
+        <a href={c.url_original} target="_blank" rel="noreferrer"
+          style={{ fontSize: '11px', color: '#3B82F6', textDecoration: 'none', background: '#EFF6FF', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          Ver original
+        </a>
+      )}
+      {c.url_firmado && (
+        <a href={c.url_firmado} target="_blank" rel="noreferrer"
+          style={{ fontSize: '11px', color: '#15803D', textDecoration: 'none', background: '#DCFCE7', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          ↓ PDF firmado
+        </a>
+      )}
+      {c.con_firma && c.estado !== 'firmado' && c.zapsign_id && (
+        <button onClick={() => handleVerificarFirma(c)} disabled={verificando[c.id]}
+          style={{ fontSize: '11px', color: '#6B21A8', background: '#F3E8FF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: verificando[c.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+          {verificando[c.id] ? '⏳ Revisando...' : '🔄 Verificar firma'}
+        </button>
+      )}
+      {!c.con_firma && c.contenido && (
+        <button onClick={() => handleDescargarPDF(c)}
+          style={{ fontSize: '11px', color: '#0A1628', background: '#FEF3C7', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          ↓ Descargar PDF
+        </button>
+      )}
+      {!c.url_original && !c.url_firmado && !c.contenido && (
+        <span style={{ fontSize: '11px', color: '#D1D5DB' }}>—</span>
+      )}
+    </>
+  );
+
   return (
     <main style={{ minHeight: '100vh', background: '#F8F9FB', fontFamily: 'Inter, sans-serif' }}>
 
       {/* Header */}
-      <div style={{ background: '#0A1628', padding: '14px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{
+        background: '#0A1628',
+        padding: isMobile ? '12px 16px' : '14px 5%',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? '10px' : 0,
+      }}>
         <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
           Contrato<span style={{ color: '#F5A623' }}>Ya</span>
         </a>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a href="/generar" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>+ Nuevo contrato</a>
-          <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{email}</span>
-          <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px', flexWrap: 'wrap' }}>
+          <a href="/generar" style={{ fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>+ Nuevo contrato</a>
+          {!isMobile && <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{email}</span>}
+          <button onClick={handleLogout} style={{ fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
         </div>
       </div>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '24px 16px' : '40px 20px' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '16px' : 0, marginBottom: '24px' }}>
           <div>
-            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '28px', fontWeight: 700, color: '#111827', margin: 0 }}>
+            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: '#111827', margin: 0 }}>
               Mis contratos
             </h1>
             <p style={{ color: '#6B7280', fontSize: '14px', marginTop: '4px' }}>
@@ -136,7 +178,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <a href="/generar"
-            style={{ padding: '10px 20px', background: '#F5A623', color: '#0A1628', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
+            style={{ padding: '10px 20px', background: '#F5A623', color: '#0A1628', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, textDecoration: 'none', width: isMobile ? '100%' : 'auto', textAlign: 'center', boxSizing: 'border-box' }}>
             ⚡ Nuevo contrato
           </a>
         </div>
@@ -155,7 +197,39 @@ export default function DashboardPage() {
             </a>
           </div>
 
+        ) : isMobile ? (
+          /* ── Vista mobile: tarjetas ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {contratos.map((c) => {
+              const estado = estadoBadge[c.estado] ?? estadoBadge.generado;
+              const tipo   = tipoBadge[c.tipo]     ?? tipoBadge.servicios;
+              return (
+                <div key={c.id} style={{ background: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>
+                    {c.nombre || `Contrato con ${c.cliente}`}
+                  </p>
+                  {c.monto && <p style={{ fontSize: '12px', color: '#9CA3AF', margin: '0 0 10px' }}>${c.monto}</p>}
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: tipo.bg, color: tipo.color }}>{tipo.label}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: estado.bg, color: estado.color }}>{estado.label}</span>
+                    <span style={{ fontSize: '11px', color: c.con_firma ? '#15803D' : '#9CA3AF', alignSelf: 'center' }}>
+                      {c.con_firma ? '✓ Con firma' : '— Solo PDF'}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '12px', color: '#9CA3AF', margin: '0 0 10px' }}>{formatFecha(c.created_at)}</p>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {renderAcciones(c)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
         ) : (
+          /* ── Vista desktop: tabla ── */
           <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.8fr', padding: '12px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
@@ -197,33 +271,7 @@ export default function DashboardPage() {
                   </span>
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {c.url_original && (
-                      <a href={c.url_original} target="_blank" rel="noreferrer"
-                        style={{ fontSize: '11px', color: '#3B82F6', textDecoration: 'none', background: '#EFF6FF', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        Ver original
-                      </a>
-                    )}
-                    {c.url_firmado && (
-                      <a href={c.url_firmado} target="_blank" rel="noreferrer"
-                        style={{ fontSize: '11px', color: '#15803D', textDecoration: 'none', background: '#DCFCE7', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        ↓ PDF firmado
-                      </a>
-                    )}
-                    {c.con_firma && c.estado !== 'firmado' && c.zapsign_id && (
-                      <button onClick={() => handleVerificarFirma(c)} disabled={verificando[c.id]}
-                        style={{ fontSize: '11px', color: '#6B21A8', background: '#F3E8FF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: verificando[c.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-                        {verificando[c.id] ? '⏳ Revisando...' : '🔄 Verificar firma'}
-                      </button>
-                    )}
-                    {!c.con_firma && c.contenido && (
-                      <button onClick={() => handleDescargarPDF(c)}
-                        style={{ fontSize: '11px', color: '#0A1628', background: '#FEF3C7', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        ↓ Descargar PDF
-                      </button>
-                    )}
-                    {!c.url_original && !c.url_firmado && !c.contenido && (
-                      <span style={{ fontSize: '11px', color: '#D1D5DB' }}>—</span>
-                    )}
+                    {renderAcciones(c)}
                   </div>
                 </div>
               );

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/lib/useIsMobile';
 import jsPDF from 'jspdf';
 
 const supabase = createClient(
@@ -79,6 +80,7 @@ interface Usuario {
 
 export default function GenerarPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [usuario, setUsuario]           = useState<Usuario | null>(null);
   const [cargando, setCargando]         = useState(true);
   const [tipoContrato, setTipoContrato] = useState<'servicios' | 'alquiler'>('servicios');
@@ -247,33 +249,41 @@ export default function GenerarPage() {
     <main style={{ minHeight: '100vh', background: '#F8F9FB', fontFamily: 'Inter, sans-serif' }}>
 
       {/* Header */}
-      <div style={{ background: '#0A1628', padding: '14px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
-          Contrato<span style={{ color: '#F5A623' }}>Ya</span>
-        </a>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {tieneCreditos ? (
-            <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px', background: '#7C3AED', color: '#fff' }}>
-              {creditosFirma} crédito{creditosFirma !== 1 ? 's' : ''}
-            </span>
-          ) : (
-            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-              {usuario?.contratos_usados ?? 0}/1 contratos gratis
-            </span>
-          )}
-          <a href="/precios" style={{ fontSize: '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 12px', borderRadius: '100px', textDecoration: 'none' }}>
-            Comprar créditos →
-          </a>
-          <a href="/dashboard" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
-            Mis contratos
-          </a>
-          <a href="/subir" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
-            Subir mi contrato
-          </a>
-          <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
-          <button onClick={handleLogout} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
-        </div>
-      </div>
+      <div style={{
+  background: '#0A1628',
+  padding: isMobile ? '12px 16px' : '14px 5%',
+  display: 'flex',
+  flexDirection: isMobile ? 'column' : 'row',
+  justifyContent: 'space-between',
+  alignItems: isMobile ? 'flex-start' : 'center',
+  gap: isMobile ? '10px' : 0,
+}}>
+  <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
+    Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+  </a>
+  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap' }}>
+    {tieneCreditos ? (
+      <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px', background: '#7C3AED', color: '#fff' }}>
+        {creditosFirma} crédito{creditosFirma !== 1 ? 's' : ''}
+      </span>
+    ) : (
+      <span style={{ fontSize: isMobile ? '11px' : '12px', color: 'rgba(255,255,255,0.5)' }}>
+        {usuario?.contratos_usados ?? 0}/1 contratos gratis
+      </span>
+    )}
+    <a href="/precios" style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 10px', borderRadius: '100px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+      Comprar créditos →
+    </a>
+    <a href="/dashboard" style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+      Mis contratos
+    </a>
+    <a href="/subir" style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+      Subir mi contrato
+    </a>
+    {!isMobile && <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>}
+    <button onClick={handleLogout} style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
+  </div>
+</div>
 
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 20px' }}>
         <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '8px', letterSpacing: '-0.5px' }}>Generá tu contrato</h1>

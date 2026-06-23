@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,6 +20,7 @@ interface Usuario {
 
 export default function SubirContratoPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   // ══════════════════ ESTADO ══════════════════
   const [usuario, setUsuario]   = useState<Usuario | null>(null);
@@ -175,16 +177,24 @@ if (cf > 0) {
     <main style={{ minHeight: '100vh', background: '#F8F9FB', fontFamily: 'Inter, sans-serif' }}>
 
       {/* Header */}
-      <div style={{ background: '#0A1628', padding: '14px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
-          Contrato<span style={{ color: '#F5A623' }}>Ya</span>
-        </a>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a href="/generar" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Generar con IA</a>
-          <a href="/dashboard" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Mis contratos</a>
-          <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>
-        </div>
-      </div>
+      <div style={{
+  background: '#0A1628',
+  padding: isMobile ? '12px 16px' : '14px 5%',
+  display: 'flex',
+  flexDirection: isMobile ? 'column' : 'row',
+  justifyContent: 'space-between',
+  alignItems: isMobile ? 'flex-start' : 'center',
+  gap: isMobile ? '10px' : 0,
+}}>
+  <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
+    Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+  </a>
+  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap' }}>
+    <a href="/generar" style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Generar con IA</a>
+    <a href="/dashboard" style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Mis contratos</a>
+    {!isMobile && <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>}
+  </div>
+</div>
 
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '40px 20px' }}>
         <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
