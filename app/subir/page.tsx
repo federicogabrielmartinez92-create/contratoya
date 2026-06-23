@@ -83,6 +83,12 @@ export default function SubirContratoPage() {
   const removerFirmante = (idx: number) => setFirmantes(firmantes.filter((_, i) => i !== idx));
 
   // ══════════════════ LLAMADAS A SUPABASE STORAGE + ZAPSIGN ══════════════════
+  const sanitizeFileName = (name: string) =>
+  name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quita acentos
+    .replace(/[^a-zA-Z0-9._-]/g, '-')                   // reemplaza espacios/símbolos raros por guion
+    .replace(/-+/g, '-');                               // colapsa guiones repetidos
+
   const handleSubirYFirmar = async () => {
     if (!usuario || !file) { setError('Subí un archivo PDF primero.'); return; }
 
@@ -99,7 +105,7 @@ if (creditosFirma === 0 && usuario.contratos_usados >= 1) {
 
     try {
       // 1. Subir PDF a Supabase Storage en la carpeta del usuario
-      const filePath = `${usuario.id}/${Date.now()}-${file.name}`;
+      const filePath = `${usuario.id}/${Date.now()}-${sanitizeFileName(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from('documentos_usuario')
         .upload(filePath, file, { contentType: 'application/pdf' });
