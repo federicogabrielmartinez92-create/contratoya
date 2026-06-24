@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         ? `${mora_porcentaje}% mensual sobre el monto adeudado, desde el día ${diaInicio} de atraso`
         : `${mora_tipo} sobre el monto adeudado, desde el día ${diaInicio} de atraso`;
 
-      prompt = `Generá un contrato de locación (alquiler) completo y formal conforme a la legislación argentina vigente (Ley 27.551 y modificatorias, Código Civil y Comercial de la Nación).
+      prompt = `Generá un contrato de locación (alquiler) completo y formal conforme al Código Civil y Comercial de la Nación Argentina, con las modificaciones introducidas por el DNU 70/2023 (vigente desde diciembre de 2023), que derogó la Ley 27.551 (Ley de Alquileres) y estableció plena libertad contractual en materia de plazo, moneda, índices de actualización y rescisión. NO menciones la Ley 27.551 ni la Ley 27.737 como marco legal vigente — están derogadas.
 
 ${locadoresTexto}
 
@@ -90,13 +90,13 @@ ${serviciosTexto}
 
 MORA POR ATRASO EN EL PAGO: ${moraTexto}
 
-RESCISION: Preaviso de ${preaviso}
+RESCISION ANTICIPADA: Preaviso de ${preaviso}. La indemnización por rescisión anticipada del locatario debe ser del 10% del saldo del canon locativo pendiente hasta la finalización del contrato (conforme art. 1221 del Código Civil y Comercial, modificado por DNU 70/2023). NO uses la fórmula antigua de "un mes y medio" o "un mes" de alquiler — esa regla fue derogada.
 
 JURISDICCION: ${jurisdiccion}
 
 INSTRUCCIONES:
 - Español formal legal argentino
-- Incluir obligatoriamente: objeto y destino, plazo y renovación, precio y actualización (cláusula índice detallada), depósito y condiciones de devolución, distribución de servicios e impuestos según lo indicado, cláusula de mora con el interés indicado, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada y preaviso, jurisdicción y competencia
+- Incluir obligatoriamente: objeto y destino, plazo (aclarando que es el libremente pactado por las partes, SIN plazo mínimo legal obligatorio y sin necesidad de justificar excepciones), precio y actualización (aclarando que el índice elegido es de libre acuerdo entre las partes y no una imposición legal), depósito y condiciones de devolución, distribución de servicios e impuestos según lo indicado, cláusula de mora con el interés indicado, conservación del inmueble, prohibición de subalquilar, cláusula de garantía según tipo, rescisión anticipada con indemnización del 10% del saldo pendiente, jurisdicción y competencia
 - ${instruccionFirma}
 - Sin markdown: sin asteriscos, sin ##, sin ---. Títulos en MAYÚSCULAS con numeración (PRIMERA, SEGUNDA, etc.)
 - Solo el texto del contrato, sin comentarios adicionales`;
