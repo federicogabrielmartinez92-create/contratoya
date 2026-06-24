@@ -1,7 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
 import { useIsMobile } from '@/lib/useIsMobile';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const faqs = [
   {
@@ -24,7 +31,16 @@ const faqs = [
 
 export default function LandingPage() {
   const isMobile = useIsMobile();
+  const router = useRouter();
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) router.push('/generar');
+    };
+    checkSession();
+  }, [router]);
 
   const sec: React.CSSProperties = { padding: isMobile ? '56px 20px' : '88px 20px' };
   const wrap: React.CSSProperties = { maxWidth: '1080px', margin: '0 auto' };
