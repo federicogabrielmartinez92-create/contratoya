@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         back_urls: {
           success: `${baseUrl}/pago/exito?plan=${plan}&userId=${userId}`,
           failure: `${baseUrl}/pago/error`,
-          pending: `${baseUrl}/pago/pendiente`,
+          pending: `${baseUrl}/pago/pendiente?plan=${plan}&userId=${userId}`,
         },
         ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
         external_reference: `${plan}_${userId}`,

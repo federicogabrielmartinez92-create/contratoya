@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
 import { PLANES, PlanId } from '@/lib/planes';
@@ -20,45 +19,29 @@ function ExitoContent() {
     if (!plan || !userId || !PLANES[plan]) return;
 
     const activar = async () => {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
       const planInfo = PLANES[plan];
 
       if (paymentId) {
-        const { data: yaExiste } = await supabase
-          .from('pagos')
-          .select('id')
-          .eq('mp_payment_id', paymentId)
-          .single();
-
-        if (!yaExiste) {
-          const { data: usuario } = await supabase
-            .from('usuarios')
-            .select('creditos_firma')
-            .eq('id', userId)
-            .single();
-
-          await supabase
-            .from('usuarios')
-            .update({
-              creditos_firma: (usuario?.creditos_firma ?? 0) + planInfo.creditos,
-              plan,
-            })
-            .eq('id', userId);
-
-          await supabase.from('pagos').insert({
-            mp_payment_id: paymentId,
-            usuario_id:    userId,
-            plan,
+        try {
+          const res = await fetch('/api/pagar/verificar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId, plan, userId }),
           });
+          const data = await res.json();
+
+          if (data.status === 'approved') {
+            setMensaje(`¡Pago ${planInfo.nombre} exitoso!`);
+            setSub(`Sumaste ${planInfo.creditos} contrato${planInfo.creditos !== 1 ? 's' : ''} con firma digital a tu cuenta.`);
+          } else {
+            setMensaje('Tu pago está en revisión');
+            setSub('Te avisamos apenas se confirme.');
+          }
+        } catch {
+          setMensaje('Hubo un problema al verificar el pago');
+          setSub('Si ya pagaste, contactanos y lo resolvemos.');
         }
       }
-
-      setMensaje(`¡Pago ${planInfo.nombre} exitoso!`);
-      setSub(`Sumaste ${planInfo.creditos} contrato${planInfo.creditos !== 1 ? 's' : ''} con firma digital a tu cuenta.`);
 
       setTimeout(() => router.push('/generar'), 2500);
     };
