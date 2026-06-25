@@ -157,7 +157,7 @@ export default function DashboardPage() {
         gap: isMobile ? '10px' : 0,
       }}>
         <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
-          Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+          Pact<span style={{ color: '#F5A623' }}>ia</span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px', flexWrap: 'wrap' }}>
           <a href="/generar" style={{ fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>+ Nuevo contrato</a>

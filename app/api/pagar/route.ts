@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
           currency_id: 'USD',
         }],
         payer: { email: userEmail },
-        notification_url: 'https://contratoya.app/api/webhooks/mp',
+        notification_url: 'https://pactia.com.ar/api/webhooks/mp',
         back_urls: {
           success: `${baseUrl}/pago/exito?plan=${plan}&userId=${userId}`,
           failure: `${baseUrl}/pago/error`,

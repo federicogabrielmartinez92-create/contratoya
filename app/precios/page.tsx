@@ -53,7 +53,7 @@ export default function PreciosPage() {
       {/* Nav */}
       <div style={{ background: '#0A1628', padding: isMobile ? '12px 16px' : '14px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
-          Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+          Pact<span style={{ color: '#F5A623' }}>ia</span>
         </a>
         {usuario && (
           <a href="/generar" style={{ fontSize: isMobile ? '12px' : '14px', color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>

@@ -259,7 +259,7 @@ export default function GenerarPage() {
   gap: isMobile ? '10px' : 0,
 }}>
   <a href="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '18px', fontWeight: 700, color: '#fff', textDecoration: 'none' }}>
-    Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+    Pact<span style={{ color: '#F5A623' }}>ia</span>
   </a>
   <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px', flexWrap: 'wrap' }}>
     {tieneCreditos ? (
@@ -330,7 +330,7 @@ export default function GenerarPage() {
 
             {/* ── FORM SERVICIOS ── */}
             {tipoContrato === 'servicios' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                 {campos.map((c) => (
                   <div key={c.name} style={{ gridColumn: c.span === 2 ? 'span 2' : 'span 1' }}>
                     <label style={lbl}>{c.label}</label>
@@ -358,7 +358,7 @@ export default function GenerarPage() {
                 {conFirma && (
                   <div style={{ gridColumn: 'span 2', background: '#F0FDF4', borderRadius: '10px', padding: '16px', border: '1px solid #BBF7D0' }}>
                     <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>✓ Ambas partes recibirán un email para firmar digitalmente.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                       <div><label style={lbl}>Tu email *</label><input name="email_prestador" value={form.email_prestador} onChange={handleChange} placeholder="tu@email.com" type="email" style={inp} /></div>
                       <div><label style={lbl}>Email del cliente *</label><input name="email_cliente" value={form.email_cliente} onChange={handleChange} placeholder="cliente@empresa.com" type="email" style={inp} /></div>
                     </div>
@@ -369,7 +369,7 @@ export default function GenerarPage() {
 
             {/* ── FORM ALQUILER ── */}
             {tipoContrato === 'alquiler' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
 
                 {/* Locadores */}
                 <div style={sec}>Locador{locadores.length > 1 ? 'es' : ''} (Propietario{locadores.length > 1 ? 's' : ''})</div>
@@ -524,7 +524,7 @@ export default function GenerarPage() {
                     <p style={{ fontSize: '13px', color: '#15803D', margin: '0 0 12px', fontWeight: 500 }}>
                       ✓ Locador{locadores.length > 1 ? 'es' : ''}, locatario{garantes.some(g => g.email) ? ' y garantes' : ''} recibirán un email para firmar digitalmente.
                     </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                       {locadores.map((l, i) => (
                         <div key={i}><label style={lbl}>Email del locador {locadores.length > 1 ? i + 1 : ''} {i === 0 ? '*' : ''}</label><input name="email" value={l.email} onChange={(e) => handleChangeLocador(i, e)} type="email" placeholder="locador@email.com" style={inp} /></div>
                       ))}

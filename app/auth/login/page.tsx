@@ -52,7 +52,7 @@ export default function LoginPage() {
     <main style={{ minHeight:'100vh', background:'#0A1628', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Inter, sans-serif', padding:'20px' }}>
       <div style={{ background:'#fff', borderRadius:'20px', padding:'48px 40px', width:'100%', maxWidth:'420px', boxShadow:'0 24px 80px rgba(0,0,0,0.4)' }}>
         <a href="/" style={{ display:'block', fontFamily:'Space Grotesk, sans-serif', fontSize:'22px', fontWeight:700, color:'#0A1628', textDecoration:'none', marginBottom:'32px' }}>
-          Contrato<span style={{color:'#F5A623'}}>Ya</span>
+          Pact<span style={{color:'#F5A623'}}>ia</span>
         </a>
 
         <h1 style={{ fontFamily:'Space Grotesk, sans-serif', fontSize:'24px', fontWeight:700, color:'#111827', marginBottom:'8px' }}>

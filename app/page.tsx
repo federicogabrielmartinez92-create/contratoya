@@ -53,7 +53,7 @@ export default function LandingPage() {
       {/* Nav */}
       <div style={{ background: '#0A1628', padding: isMobile ? '14px 16px' : '16px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '20px', fontWeight: 700, color: '#fff' }}>
-          Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+          Pact<span style={{ color: '#F5A623' }}>ia</span>
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px' }}>
           {!isMobile && <a href="/precios" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>Precios</a>}
@@ -73,7 +73,7 @@ export default function LandingPage() {
             Generá o subí tu contrato.<br />Envialo a firmar. Listo.
           </h1>
           <p style={{ fontSize: isMobile ? '15px' : '18px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: '32px' }}>
-            ContratoYa combina IA y firma electrónica para que freelancers, inmobiliarias y PYMES en Argentina cierren acuerdos sin abogados, sin papeles y sin vueltas.
+            Pactia combina IA y firma electrónica para que freelancers, inmobiliarias y PYMES en Argentina cierren acuerdos sin abogados, sin papeles y sin vueltas.
           </p>
           <a href="/auth/login" style={{ display: 'inline-block', padding: isMobile ? '14px 28px' : '16px 36px', borderRadius: '10px', background: '#F5A623', color: '#0A1628', fontSize: isMobile ? '15px' : '16px', fontWeight: 700, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
             Crear mi primer contrato gratis →
@@ -236,12 +236,12 @@ export default function LandingPage() {
 
       <div style={{ background: '#0A1628', borderTop: '1px solid rgba(255,255,255,0.08)', padding: isMobile ? '24px 20px' : '28px 5%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '16px' : 0 }}>
         <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '15px', fontWeight: 700, color: '#fff' }}>
-          Contrato<span style={{ color: '#F5A623' }}>Ya</span>
+          Pact<span style={{ color: '#F5A623' }}>ia</span>
         </span>
         <div style={{ display: 'flex', gap: isMobile ? '16px' : '20px', flexWrap: 'wrap' }}>
           <a href="/precios" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Precios</a>
           <a href="/auth/login" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Ingresar</a>
-          <a href="mailto:soporte@contratoya.app" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>soporte@contratoya.app</a>
+          <a href="mailto:soporte@pactia.com.ar" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>soporte@contratoya.app</a>
         </div>
       </div>
     </main>
