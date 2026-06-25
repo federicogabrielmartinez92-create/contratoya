@@ -12,12 +12,12 @@ export async function enviarEmailFirma(params: {
 
   try {
     await resend.emails.send({
-      from: 'ContratoYa <firmas@contratoya.app>',
+      from: 'Pactia <firmas@pactia.com.ar>',
       to: destinatarioEmail,
       subject: `Tenés un contrato para firmar: ${nombreDocumento}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-          <h2 style="color:#0A1628; margin-bottom: 24px;">Contrato<span style="color:#F5A623;">Ya</span></h2>
+          <h2 style="color:#0A1628; margin-bottom: 24px;">Pact<span style="color:#F5A623;">ia</span></h2>
           <p>Hola ${destinatarioNombre},</p>
           <p>Tenés un contrato esperando tu firma digital: <strong>${nombreDocumento}</strong>.</p>
           <p style="margin: 24px 0;">
@@ -26,7 +26,7 @@ export async function enviarEmailFirma(params: {
             </a>
           </p>
           <p style="font-size:13px;color:#6B7280;">Si el botón no funciona, copiá y pegá este link en tu navegador:<br>${signUrl}</p>
-          <p style="font-size:12px;color:#9CA3AF;margin-top:32px;">Este email fue enviado por ContratoYa (contratoya.app)</p>
+          <p style="font-size:12px;color:#9CA3AF;margin-top:32px;">Este email fue enviado por Pactia (pactia.com.ar)</p>
         </div>
       `,
     });
