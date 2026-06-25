@@ -241,7 +241,7 @@ export default function LandingPage() {
         <div style={{ display: 'flex', gap: isMobile ? '16px' : '20px', flexWrap: 'wrap' }}>
           <a href="/precios" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Precios</a>
           <a href="/auth/login" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Ingresar</a>
-          <a href="mailto:soporte@pactia.com.ar" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>soporte@contratoya.app</a>
+          <a href="mailto:soporte@pactia.com.ar" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>soporte@pactia.com.ar</a>
         </div>
       </div>
     </main>
