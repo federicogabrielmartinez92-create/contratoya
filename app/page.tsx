@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutDashboard, Zap, PiggyBank, MapPin, Clock, Mail } from 'lucide-react';
+import { LayoutDashboard, Zap, PiggyBank, MapPin, Mail, Lock } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 
 const supabase = createClient(
@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     q: '¿Es legalmente válida la firma electrónica?',
-    a: 'Sí. Está reconocida por la Ley 25.506 y el artículo 288 del Código Civil y Comercial de la Nación. Cada firma queda respaldada por un registro de auditoría completo (dirección IP, fecha, hora y verificación por email de cada firmante), que sirve como prueba si el contrato se cuestiona en algún momento.',
+    a: 'Sí. En Argentina, la firma electrónica tiene plena validez probatoria bajo el artículo 5 de la Ley 25.506. Al finalizar el proceso, la plataforma sella el documento mediante un Hash criptográfico (SHA-256) que garantiza su inalterabilidad absoluta. Además, emite un Certificado de Auditoría anexo que registra la trazabilidad completa de cada firmante: método de autenticación (Email o WhatsApp), dirección IP, datos del dispositivo, geolocalización y marca de tiempo exacta. Es el estándar tecnológico y probatorio más robusto para blindar tus acuerdos.',
   },
   {
     q: '¿Los créditos que compro vencen?',
@@ -212,13 +212,13 @@ export default function LandingPage() {
           </p>
           <h2 style={{ ...h2, color: '#fff' }}>¿Es legal firmar un contrato así?</h2>
           <p style={{ fontSize: isMobile ? '15px' : '17px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, marginBottom: '32px' }}>
-            Sí. La firma electrónica está reconocida por la <strong style={{ color: '#fff' }}>Ley 25.506</strong> y el <strong style={{ color: '#fff' }}>artículo 288 del Código Civil y Comercial de la Nación</strong>. Cada firma queda respaldada por un registro de auditoría completo — dirección IP, fecha, hora y verificación por email de cada firmante — que funciona como prueba ante cualquier reclamo. Es la misma tecnología que usan miles de empresas en toda Latinoamérica para cerrar acuerdos sin papel.
+            Sí. La firma electrónica está reconocida por la <strong style={{ color: '#fff' }}>Ley 25.506</strong> y el <strong style={{ color: '#fff' }}>artículo 288 del Código Civil y Comercial de la Nación</strong>. Al finalizar el proceso, la plataforma sella el documento con un hash criptográfico <strong style={{ color: '#fff' }}>SHA-256</strong> — el mismo estándar que usan bancos y gobiernos — que detecta cualquier alteración posterior a la firma. Además, se genera un Certificado de Auditoría que registra la trazabilidad completa de cada firmante: dirección IP, datos del dispositivo y marca de tiempo exacta. Si la firma es cuestionada, este registro es la prueba que respalda su autenticidad. Es el mismo estándar tecnológico que usan miles de empresas en toda Latinoamérica.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px', textAlign: 'left' }}>
             {[
-              { Icon: MapPin, t: 'Registro de IP' },
-              { Icon: Clock, t: 'Fecha y hora exacta' },
-              { Icon: Mail, t: 'Verificación por email' },
+              { Icon: Lock, t: 'Sello Criptográfico (SHA-256)' },
+              { Icon: MapPin, t: 'Trazabilidad (IP y Dispositivo)' },
+              { Icon: Mail, t: 'Verificación por Email' },
             ].map(x => (
               <div key={x.t} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <x.Icon size={18} color="#F5A623" />
