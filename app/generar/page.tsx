@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { motion, AnimatePresence } from 'motion/react';
-import { Briefcase, Home, FileText, FileSignature, Zap, Loader2, CheckCircle2, Download, Trash2, Plus, PenLine } from 'lucide-react';
+import { Briefcase, Home, FileText, FileSignature, Zap, Loader2, CheckCircle2, Download, Trash2, Plus, PenLine, User, LogOut } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const supabase = createClient(
@@ -123,6 +123,16 @@ export default function GenerarPage() {
   }, [router]);
 
   const handleLogout          = async () => { await supabase.auth.signOut(); router.push('/'); };
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const handleChange          = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
   const handleChangeAlquiler  = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setFormAlquiler({ ...formAlquiler, [e.target.name]: e.target.value });
   const handleChangeLocador   = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setLocadores(locadores.map((l, i) => i === idx ? { ...l, [e.target.name]: e.target.value } : l));
@@ -277,14 +287,39 @@ export default function GenerarPage() {
           <a href="/precios" style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 600, color: '#F5A623', border: '1px solid #F5A623', padding: '4px 10px', borderRadius: '100px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Comprar créditos →
           </a>
-          <a href="/dashboard" style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+          <motion.a href="/dashboard" whileHover={{ color: '#fff' }}
+            style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
             Mis contratos
-          </a>
-          <a href="/subir" style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+          </motion.a>
+          <motion.a href="/subir" whileHover={{ color: '#fff' }}
+            style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
             Subir mi contrato
-          </a>
-          {!isMobile && <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{usuario?.email}</span>}
-          <button onClick={handleLogout} style={{ fontSize: isMobile ? '11px' : '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
+          </motion.a>
+
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setMenuOpen(!menuOpen)}
+              style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              <User size={15} />
+            </button>
+            <AnimatePresence>
+              {menuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, background: '#fff', borderRadius: '10px', boxShadow: '0 12px 32px rgba(0,0,0,0.18)', padding: '6px', minWidth: '210px', zIndex: 50 }}>
+                  <p style={{ fontSize: '12px', color: '#6B7280', padding: '8px 10px 10px', margin: 0, borderBottom: '1px solid #F3F4F6', wordBreak: 'break-all' }}>
+                    {usuario?.email}
+                  </p>
+                  <button onClick={handleLogout}
+                    style={{ width: '100%', textAlign: 'left', padding: '9px 10px', fontSize: '13px', color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                    <LogOut size={14} /> Cerrar sesión
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
