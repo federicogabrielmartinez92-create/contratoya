@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
+import { motion, AnimatePresence } from 'motion/react';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { User, LogOut, Download, RefreshCw, ExternalLink, FileX, Plus } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,6 +47,16 @@ export default function DashboardPage() {
   const [email, setEmail]             = useState('');
   const [cargando, setCargando]       = useState(true);
   const [verificando, setVerificando] = useState<Record<string, boolean>>({});
+  const [menuOpen, setMenuOpen]       = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const cargarContratos = async () => {
     const { data } = await supabase
@@ -115,26 +127,29 @@ export default function DashboardPage() {
     <>
       {c.url_original && (
         <a href={c.url_original} target="_blank" rel="noreferrer"
-          style={{ fontSize: '11px', color: '#3B82F6', textDecoration: 'none', background: '#EFF6FF', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-          Ver original
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#3B82F6', textDecoration: 'none', background: '#EFF6FF', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          <ExternalLink size={12} /> Ver original
         </a>
       )}
       {c.url_firmado && (
         <a href={c.url_firmado} target="_blank" rel="noreferrer"
-          style={{ fontSize: '11px', color: '#15803D', textDecoration: 'none', background: '#DCFCE7', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-          ↓ PDF firmado
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#15803D', textDecoration: 'none', background: '#DCFCE7', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          <Download size={12} /> PDF firmado
         </a>
       )}
       {c.con_firma && c.estado !== 'firmado' && c.zapsign_id && (
         <button onClick={() => handleVerificarFirma(c)} disabled={verificando[c.id]}
-          style={{ fontSize: '11px', color: '#6B21A8', background: '#F3E8FF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: verificando[c.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-          {verificando[c.id] ? '⏳ Revisando...' : '🔄 Verificar firma'}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6B21A8', background: '#F3E8FF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: verificando[c.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+          <motion.span style={{ display: 'inline-flex' }} animate={verificando[c.id] ? { rotate: 360 } : {}} transition={{ duration: 0.8, repeat: verificando[c.id] ? Infinity : 0, ease: 'linear' }}>
+            <RefreshCw size={12} />
+          </motion.span>
+          {verificando[c.id] ? 'Revisando...' : 'Verificar firma'}
         </button>
       )}
       {!c.con_firma && c.contenido && (
         <button onClick={() => handleDescargarPDF(c)}
-          style={{ fontSize: '11px', color: '#0A1628', background: '#FEF3C7', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          ↓ Descargar PDF
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#0A1628', background: '#FEF3C7', border: 'none', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <Download size={12} /> Descargar PDF
         </button>
       )}
       {!c.url_original && !c.url_firmado && !c.contenido && (
@@ -160,9 +175,35 @@ export default function DashboardPage() {
           Pact<span style={{ color: '#F5A623' }}>ia</span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px', flexWrap: 'wrap' }}>
-          <a href="/generar" style={{ fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>+ Nuevo contrato</a>
-          {!isMobile && <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{email}</span>}
-          <button onClick={handleLogout} style={{ fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>Salir</button>
+          <motion.a href="/generar" whileHover={{ color: '#fff' }}
+            style={{ fontSize: isMobile ? '12px' : '13px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Plus size={13} /> Nuevo contrato
+          </motion.a>
+
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setMenuOpen(!menuOpen)}
+              style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              <User size={15} />
+            </button>
+            <AnimatePresence>
+              {menuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, background: '#fff', borderRadius: '10px', boxShadow: '0 12px 32px rgba(0,0,0,0.18)', padding: '6px', minWidth: '210px', zIndex: 50 }}>
+                  <p style={{ fontSize: '12px', color: '#6B7280', padding: '8px 10px 10px', margin: 0, borderBottom: '1px solid #F3F4F6', wordBreak: 'break-all' }}>
+                    {email}
+                  </p>
+                  <button onClick={handleLogout}
+                    style={{ width: '100%', textAlign: 'left', padding: '9px 10px', fontSize: '13px', color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                    <LogOut size={14} /> Cerrar sesión
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -177,15 +218,17 @@ export default function DashboardPage() {
               {contratos.length} contrato{contratos.length !== 1 ? 's' : ''} generado{contratos.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <a href="/generar"
-            style={{ padding: '10px 20px', background: '#F5A623', color: '#0A1628', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, textDecoration: 'none', width: isMobile ? '100%' : 'auto', textAlign: 'center', boxSizing: 'border-box' }}>
-            ⚡ Nuevo contrato
-          </a>
+          <motion.a href="/generar" whileHover={{ y: -2 }} whileTap={{ y: 0 }}
+            style={{ padding: '10px 20px', background: '#F5A623', color: '#0A1628', borderRadius: '8px', fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 600, textDecoration: 'none', width: isMobile ? '100%' : 'auto', textAlign: 'center', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <Plus size={16} /> Nuevo contrato
+          </motion.a>
         </div>
 
         {contratos.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '60px 40px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <FileX size={44} color="#D1D5DB" />
+            </div>
             <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '20px', fontWeight: 600, color: '#111827', margin: '0 0 8px' }}>
               Todavía no generaste ningún contrato
             </h2>
@@ -198,7 +241,6 @@ export default function DashboardPage() {
           </div>
 
         ) : isMobile ? (
-          /* ── Vista mobile: tarjetas ── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {contratos.map((c) => {
               const estado = estadoBadge[c.estado] ?? estadoBadge.generado;
@@ -229,7 +271,6 @@ export default function DashboardPage() {
           </div>
 
         ) : (
-          /* ── Vista desktop: tabla ── */
           <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.8fr', padding: '12px 24px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
