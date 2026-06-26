@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import { motion, AnimatePresence } from 'motion/react';
+import { LayoutDashboard, Zap, PiggyBank, MapPin, Clock, Mail } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 
 const supabase = createClient(
@@ -12,7 +14,7 @@ const supabase = createClient(
 
 const faqs = [
   {
-    q: '¿La otra persona necesita tener una cuenta en ContratoYa?',
+    q: '¿La otra persona necesita tener una cuenta en Pactia?',
     a: 'No. Cada firmante recibe un email con su link personal de firma. No necesita registrarse, descargar nada ni crear una cuenta — entra, revisa el documento y firma desde el celular o la computadora.',
   },
   {
@@ -28,6 +30,17 @@ const faqs = [
     a: 'Sí. Si ya tenés un PDF redactado, lo subís directamente y lo enviás a firmar digitalmente igual que si lo hubieras generado con nuestras plantillas.',
   },
 ];
+
+// ── Variantes de animación reutilizables ──
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.15 } },
+};
 
 export default function LandingPage() {
   const isMobile = useIsMobile();
@@ -57,15 +70,23 @@ export default function LandingPage() {
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px' }}>
           {!isMobile && <a href="/precios" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>Precios</a>}
-          <a href="/auth/login" style={{ padding: '8px 18px', borderRadius: '8px', background: '#F5A623', color: '#0A1628', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
+          <motion.a
+            href="/auth/login"
+            whileHover={{ y: -1 }}
+            whileTap={{ y: 0 }}
+            style={{ padding: '8px 18px', borderRadius: '8px', background: '#F5A623', color: '#0A1628', fontSize: '13px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
             Ingresar
-          </a>
+          </motion.a>
         </div>
       </div>
 
-      {/* ── 1. HERO ── */}
+      {/* ── 1. HERO (fade-in + slide-up al cargar) ── */}
       <div style={{ background: '#0A1628', padding: isMobile ? '56px 20px 64px' : '100px 20px 110px', textAlign: 'center' }}>
-        <div style={{ maxWidth: '780px', margin: '0 auto' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+          style={{ maxWidth: '780px', margin: '0 auto' }}>
           <p style={{ fontSize: '12px', fontFamily: 'DM Mono, monospace', color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '20px' }}>
             Contratos + Firma digital · Argentina
           </p>
@@ -75,13 +96,18 @@ export default function LandingPage() {
           <p style={{ fontSize: isMobile ? '15px' : '18px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: '32px' }}>
             Pactia combina IA y firma electrónica para que freelancers, inmobiliarias y PYMES en Argentina cierren acuerdos sin abogados, sin papeles y sin vueltas.
           </p>
-          <a href="/auth/login" style={{ display: 'inline-block', padding: isMobile ? '14px 28px' : '16px 36px', borderRadius: '10px', background: '#F5A623', color: '#0A1628', fontSize: isMobile ? '15px' : '16px', fontWeight: 700, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
+          <motion.a
+            href="/auth/login"
+            whileHover={{ y: -3, boxShadow: '0 12px 28px rgba(245,166,35,0.35)' }}
+            whileTap={{ y: -1 }}
+            transition={{ duration: 0.15 }}
+            style={{ display: 'inline-block', padding: isMobile ? '14px 28px' : '16px 36px', borderRadius: '10px', background: '#F5A623', color: '#0A1628', fontSize: isMobile ? '15px' : '16px', fontWeight: 700, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
             Crear mi primer contrato gratis →
-          </a>
+          </motion.a>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginTop: '16px' }}>
             Sin tarjeta de crédito · 1 contrato gratis de por vida
           </p>
-        </div>
+        </motion.div>
       </div>
 
       {/* ── 2. CONFIANZA ── */}
@@ -91,64 +117,96 @@ export default function LandingPage() {
         </p>
       </div>
 
-      {/* ── 3. CÓMO FUNCIONA ── */}
+      {/* ── 3. CÓMO FUNCIONA (revelado secuencial, paso a paso) ── */}
       <div style={{ ...sec, background: '#F8F9FB' }}>
         <div style={wrap}>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '64px' }}>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '64px' }}>
             <p style={{ fontSize: '12px', fontFamily: 'DM Mono, monospace', color: '#F5A623', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>
               Cómo funciona
             </p>
             <h2 style={h2}>De la idea al contrato firmado, en 3 pasos</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px' }}>
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={staggerContainer}
+            style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px' }}>
             {[
               { n: '1', t: 'Generá con IA o subí tu PDF', d: 'Elegí una plantilla (servicios o alquiler) y completá los datos, o subí un contrato que ya tengas redactado.' },
               { n: '2', t: 'Enviá a firmar digitalmente', d: 'Cada parte recibe un email con su link personal. Firman desde el celular o la compu, sin imprimir nada.' },
               { n: '3', t: 'Descargá el contrato firmado', d: 'Desde tu panel privado, accedé al PDF original y al firmado cuando quieras — sin vencimiento.' },
             ].map(s => (
-              <div key={s.n} style={{ background: '#fff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <motion.div key={s.n} variants={fadeUp} transition={{ duration: 0.45 }}
+                style={{ background: '#fff', borderRadius: '16px', padding: '28px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FFFBF0', color: '#F5A623', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '16px', marginBottom: '16px' }}>
                   {s.n}
                 </div>
                 <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '17px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>{s.t}</h3>
                 <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: 1.55, margin: 0 }}>{s.d}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
 
       {/* ── 4. BENEFICIOS ── */}
       <div style={{ ...sec, background: '#fff' }}>
         <div style={wrap}>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '64px' }}>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            style={{ textAlign: 'center', marginBottom: isMobile ? '40px' : '64px' }}>
             <p style={{ fontSize: '12px', fontFamily: 'DM Mono, monospace', color: '#F5A623', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>
-              Por qué ContratoYa
+              Por qué Pactia
             </p>
             <h2 style={h2}>Todo lo que necesitás, en un solo lugar</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '20px' }}>
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '20px' }}>
             {[
-              { i: '📊', t: 'Tu panel de control', d: 'Mis contratos te muestra el estado de cada uno en tiempo real — generado, enviado a firmar o ya firmado — con descarga histórica disponible siempre.' },
-              { i: '⚡', t: 'Dos formas de empezar', d: 'Usá nuestras plantillas legales con IA (servicios o alquiler), o subí un PDF que ya tengas redactado y mandalo a firmar igual.' },
-              { i: '💰', t: 'Ahorrás tiempo y dinero', d: 'Lo que te cobraría armar un contrato a medida con un estudio jurídico, acá lo tenés listo en minutos, a una fracción del costo.' },
-              { i: '🇦🇷', t: 'Pensado para Argentina', d: 'Cláusulas de mora, depósito, índices de actualización, garantías y jurisdicción — todo conforme a la normativa vigente, no a la derogada.' },
+              { Icon: LayoutDashboard, t: 'Tu panel de control', d: 'Mis contratos te muestra el estado de cada uno en tiempo real — generado, enviado a firmar o ya firmado — con descarga histórica disponible siempre.' },
+              { Icon: Zap, t: 'Dos formas de empezar', d: 'Usá nuestras plantillas legales con IA (servicios o alquiler), o subí un PDF que ya tengas redactado y mandalo a firmar igual.' },
+              { Icon: PiggyBank, t: 'Ahorrás tiempo y dinero', d: 'Lo que te cobraría armar un contrato a medida con un estudio jurídico, acá lo tenés listo en minutos, a una fracción del costo.' },
+              { Icon: null, emoji: '🇦🇷', t: 'Pensado para Argentina', d: 'Cláusulas de mora, depósito, índices de actualización, garantías y jurisdicción — todo conforme a la normativa vigente, no a la derogada.' },
             ].map(b => (
               <div key={b.t} style={{ display: 'flex', gap: '16px', padding: '20px', borderRadius: '14px', background: '#F8F9FB' }}>
-                <div style={{ fontSize: '28px', flexShrink: 0 }}>{b.i}</div>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFFBF0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '22px' }}>
+                  {b.Icon ? <b.Icon size={22} color="#F5A623" /> : b.emoji}
+                </div>
                 <div>
                   <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '16px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>{b.t}</h3>
                   <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: 1.55, margin: 0 }}>{b.d}</p>
                 </div>
               </div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
 
       {/* ── 5. VALIDEZ LEGAL ── */}
       <div style={{ ...sec, background: '#0A1628' }}>
-        <div style={{ ...wrap, maxWidth: '720px', textAlign: 'center' }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+          transition={{ duration: 0.5 }}
+          style={{ ...wrap, maxWidth: '720px', textAlign: 'center' }}>
           <p style={{ fontSize: '12px', fontFamily: 'DM Mono, monospace', color: '#F5A623', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>
             Validez legal
           </p>
@@ -158,22 +216,28 @@ export default function LandingPage() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px', textAlign: 'left' }}>
             {[
-              { i: '📍', t: 'Registro de IP' },
-              { i: '🕐', t: 'Fecha y hora exacta' },
-              { i: '✉️', t: 'Verificación por email' },
+              { Icon: MapPin, t: 'Registro de IP' },
+              { Icon: Clock, t: 'Fecha y hora exacta' },
+              { Icon: Mail, t: 'Verificación por email' },
             ].map(x => (
               <div key={x.t} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>{x.i}</span>
+                <x.Icon size={18} color="#F5A623" />
                 <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>{x.t}</span>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ── 6. PRECIOS (teaser) ── */}
       <div style={{ ...sec, background: '#F8F9FB' }}>
-        <div style={{ ...wrap, textAlign: 'center' }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+          transition={{ duration: 0.5 }}
+          style={{ ...wrap, textAlign: 'center' }}>
           <p style={{ fontSize: '12px', fontFamily: 'DM Mono, monospace', color: '#F5A623', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>
             Precios
           </p>
@@ -194,15 +258,25 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <a href="/precios" style={{ display: 'inline-block', padding: '13px 28px', borderRadius: '10px', background: '#0A1628', color: '#F5A623', fontSize: '14px', fontWeight: 600, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
+          <motion.a
+            href="/precios"
+            whileHover={{ y: -2 }}
+            whileTap={{ y: 0 }}
+            style={{ display: 'inline-block', padding: '13px 28px', borderRadius: '10px', background: '#0A1628', color: '#F5A623', fontSize: '14px', fontWeight: 600, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
             Ver todos los planes →
-          </a>
-        </div>
+          </motion.a>
+        </motion.div>
       </div>
 
-      {/* ── 7. FAQ ── */}
+      {/* ── 7. FAQ (acordeón animado) ── */}
       <div style={{ ...sec, background: '#fff' }}>
-        <div style={{ ...wrap, maxWidth: '720px' }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+          transition={{ duration: 0.5 }}
+          style={{ ...wrap, maxWidth: '720px' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <p style={{ fontSize: '12px', fontFamily: 'DM Mono, monospace', color: '#F5A623', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>
               Preguntas frecuentes
@@ -214,24 +288,49 @@ export default function LandingPage() {
               <button onClick={() => setFaqOpen(faqOpen === i ? null : i)}
                 style={{ width: '100%', textAlign: 'left', padding: '20px 0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '15px', fontWeight: 600, color: '#111827', fontFamily: 'Space Grotesk, sans-serif' }}>{f.q}</span>
-                <span style={{ fontSize: '18px', color: '#F5A623', flexShrink: 0 }}>{faqOpen === i ? '−' : '+'}</span>
+                <motion.span
+                  animate={{ rotate: faqOpen === i ? 45 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ fontSize: '18px', color: '#F5A623', flexShrink: 0 }}>
+                  +
+                </motion.span>
               </button>
-              {faqOpen === i && (
-                <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: 1.6, margin: '0 0 20px' }}>{f.a}</p>
-              )}
+              <AnimatePresence initial={false}>
+                {faqOpen === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    style={{ overflow: 'hidden' }}>
+                    <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: 1.6, margin: '0 0 20px' }}>{f.a}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* ── 8. CTA FINAL + FOOTER ── */}
       <div style={{ background: '#0A1628', padding: isMobile ? '56px 20px' : '88px 20px', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: isMobile ? '26px' : '36px', fontWeight: 700, color: '#fff', marginBottom: '16px', letterSpacing: '-0.5px' }}>
-          Tu próximo contrato, listo en minutos.
-        </h2>
-        <a href="/auth/login" style={{ display: 'inline-block', padding: isMobile ? '14px 28px' : '16px 36px', borderRadius: '10px', background: '#F5A623', color: '#0A1628', fontSize: '15px', fontWeight: 700, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
-          Empezar gratis →
-        </a>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+          transition={{ duration: 0.5 }}>
+          <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: isMobile ? '26px' : '36px', fontWeight: 700, color: '#fff', marginBottom: '16px', letterSpacing: '-0.5px' }}>
+            Tu próximo contrato, listo en minutos.
+          </h2>
+          <motion.a
+            href="/auth/login"
+            whileHover={{ y: -3, boxShadow: '0 12px 28px rgba(245,166,35,0.35)' }}
+            whileTap={{ y: -1 }}
+            style={{ display: 'inline-block', padding: isMobile ? '14px 28px' : '16px 36px', borderRadius: '10px', background: '#F5A623', color: '#0A1628', fontSize: '15px', fontWeight: 700, textDecoration: 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
+            Empezar gratis →
+          </motion.a>
+        </motion.div>
       </div>
 
       <div style={{ background: '#0A1628', borderTop: '1px solid rgba(255,255,255,0.08)', padding: isMobile ? '24px 20px' : '28px 5%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '16px' : 0 }}>
